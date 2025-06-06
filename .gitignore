@@ -1,0 +1,43 @@
+# Build artifacts
+*.env
+.venv/
+venv/
+*app.log
+.vscode/
+.ruff_cache/
+.mypy_cache/
+.python-version
+*.egg-info/
+build/
+dist/
+*.egg
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# IDE settings
+.idea/
+.project
+.settings/
+
+# Test artifacts (test source files should be versioned)
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+nosetests.xml
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Editor backup/swap files
+*.swp
+*.swo
+
+# Profiling output
+profile_output/
+
+# rules exception
+!example.env
