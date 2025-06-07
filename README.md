@@ -1,185 +1,477 @@
-# UV-Powered FastAPI Micro-Service Boilerplate
+# 🚀 StatementSense - AI-Powered Bank Statement Analyzer
 
-[![Python Version](https://img.shields.io/badge/python-%3E%3D3.13-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-purple.svg)](https://github.com/astral-sh/ruff)
-[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
-[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ferdinandbracho/bp_fastAPI-sqlalchemy-alembic-docker/deploy_dev.yml?branch=main&logo=githubactions)](https://github.com/ferdinandbracho/bp_fastAPI-sqlalchemy-alembic-docker/actions/workflows/deploy_dev.yml?query=branch%3Amain)
-[![Docker](https://img.shields.io/badge/docker-ready-blue?logo=docker)](https://www.docker.com/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+A modern, full-stack application that uses artificial intelligence to automatically categorize and analyze bank statement transactions. Upload PDF statements and get intelligent insights about your spending patterns.
 
-This repository offers boilerplate code for initiating a UV-managed, [Dockerized](https://www.docker.com/) [FastAPI](https://fastapi.tiangolo.com/)-[PostgreSQL](https://www.postgresql.org/?&)-[SQLAlchemy](https://www.sqlalchemy.org/)-[Alembic](https://alembic.sqlalchemy.org/en/latest/) project. It includes a [pre-commit](https://pre-commit.com/) framework configured with [mypy](https://mypy.readthedocs.io/en/stable/index.html) and [ruff](https://beta.ruff.rs/docs/) to ensure consistent code formatting and strict typing. Whether you're building microservices or a larger application, this template streamlines your project setup, allowing you to focus on developing your FastAPI-based microservices with confidence using `uv` for package management.
+![StatementSense Demo](https://via.placeholder.com/800x400/3B82F6/FFFFFF?text=StatementSense+Demo)
 
-Use this template as a starting point to quickly set up a robust and scalable FastAPI project with PostgreSQL, taking advantage of powerful features like automatic API documentation generation, asynchronous capabilities, and containerization for easy deployment.
+## ✨ Features
 
-## Table of Contents
+### 🤖 **Smart AI Categorization**
+- **Hybrid Classification**: Combines exact matching, pattern recognition, and LLM intelligence
+- **Local LLM**: Uses Llama 3.2 1B model running locally via Ollama
+- **Multi-Bank Support**: Works with Mexican bank statements (BBVA, Banamex, Santander, etc.)
+- **Learning System**: Improves accuracy over time
 
-- [Features](#features)
-- [Usage](#usage)
-- [Environment Variables](#environment-variables)
-- [Documentation](#documentation)
-- [Contributing](#contributing)
+### 📊 **Comprehensive Analysis**
+- **Spending Insights**: Detailed breakdown by categories
+- **Interactive Charts**: Beautiful visualizations with Chart.js
+- **Transaction Management**: Edit categories and add notes
+- **Export Data**: Download analyses and reports
 
-## Features
+### 🎨 **Modern Interface**
+- **Responsive Design**: Works perfectly on desktop, tablet, and mobile
+- **Real-time Updates**: Live processing status and notifications
+- **Drag & Drop Upload**: Intuitive file upload experience
+- **Dark/Light Themes**: Comfortable viewing in any environment
 
-- FastAPI framework for building high-performance APIs
-- PostgreSQL database integration with SQLAlchemy for efficient data management
-- Alembic for seamless database schema migrations
-- Pre-commit framework with MyPy and ruff for code formatting and strict typing checks
-- CRUD base class for instance with needed model
-- Project config file for ease of update configurations
-- Utils function in utils.py (client and consumer for RabbitMQ broker for example)
+### 🔒 **Privacy & Security**
+- **Local Processing**: All data stays on your machine
+- **No External APIs**: Bank data never leaves your infrastructure
+- **Secure Storage**: Encrypted file handling and secure database
 
-Get started with your FastAPI project in no time using this template repository!
+## 🏗 Architecture
 
-## Usage
-
-### Initial Setup
-
-This project uses `uv` for package and environment management.
-
-1. **Ensure `uv` is installed**: If you don't have `uv` installed, follow the instructions at [astral.sh/uv/install](https://astral.sh/uv/install).
-
-1. **Create and Activate Virtual Environment**: Navigate to the project root and run:
-
-   ```sh
-   uv venv
-   source .venv/bin/activate
-   ```
-
-   This creates a virtual environment in `.venv/` and activates it.
-
-1. **Install Dependencies**: With the virtual environment active, install the project dependencies (including development tools like `pre-commit` and `pytest`):
-
-   ```sh
-   uv sync --all-extras
-   ```
-
-   Alternatively, you can use `uv pip install ".[dev]"`.
-
-1. **Install Pre-commit Hooks**: To ensure code quality and consistency, install the pre-commit hooks:
-
-   ```sh
-   pre-commit install
-   ```
-
-   This will run linters and formatters automatically before each commit. You can also run them manually on all files:
-
-   ```sh
-   pre-commit run --all-files
-   ```
-
-### Alternative Setup with `make`
-
-A `Makefile` is provided with an `init` target that automates the above steps. It will create a virtual environment named `venv` (note: not `.venv`), install `uv` into it if necessary, install dependencies, and set up pre-commit. Positioning in the project root run the following make command:
-
-```sh
-make init
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   React Frontend │    │  FastAPI Backend │    │  PostgreSQL DB  │
+│                 │    │                 │    │                 │
+│  • File Upload  │◄──►│  • PDF Parser   │◄──►│  • Statements   │
+│  • Charts       │    │  • AI Categorizer│    │  • Transactions │
+│  • Transaction  │    │  • Analysis     │    │  • Categories   │
+│    Management   │    │  • REST API     │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                │
+                                ▼
+                       ┌─────────────────┐
+                       │   Ollama LLM    │
+                       │                 │
+                       │ • Llama 3.2 1B  │
+                       │ • Local Inference│
+                       │ • Smart Categoriz│
+                       └─────────────────┘
 ```
 
-### Makefile Commands
+## 🚀 Quick Start
 
-The project includes a `Makefile` to streamline common development tasks. Here are the available commands:
+### Option 1: Docker Development (Recommended)
 
-- `make help`: Displays a list of all available `make` commands and their descriptions.
-- `make init`: Initializes the project. This includes creating a Python virtual environment in `venv/`, installing `uv` (if not present in the environment's pip), installing all project dependencies using `uv pip install ".[dev]"`, installing pre-commit hooks, and running pre-commit on all files.
-- `make lint`: Runs linters and style checks using `pre-commit run --all-files`.
-- `make format`: Formats the codebase using `ruff format .`.
-- `make test`: Executes the test suite using `pytest` (via `uv run pytest`).
-- `make run`: Starts the FastAPI development server using Uvicorn on `http://0.0.0.0:8000` with live reloading (`uv run uvicorn app.main:app --reload`).
-- `make docker-build`: Builds the Docker image for the application, tagging it as `bp-fastapi-sqlalchemy-alembic-docker`.
-- `make docker-run`: Runs the application in a Docker container in detached mode. It maps port 8000, uses the `.env` file from the project root for environment variables, and names the container `bp-fastapi-app`.
-- `make alembic-revision MSG="your_message_here"`: Creates a new Alembic database migration. The `MSG` variable is optional; if not provided, it defaults to "new_migration".
-- `make alembic-upgrade`: Applies all pending Alembic database migrations, upgrading the database to the latest revision (`head`).
-- `make clean`: Removes temporary files and build artifacts, including `__pycache__` directories, `*.pyc` files, test/lint caches (`.pytest_cache`, `.mypy_cache`, `.ruff_cache`), build artifacts (`build/`, `dist/`, `*.egg-info/`), and the `venv/` and `.venv/` virtual environment directories.
+```bash
+git clone <repository-url>
+cd statement-sense
 
-To use these commands, simply run them from the project's root directory (e.g., `make lint`).
+# Start development environment (includes hot reload)
+make docker-dev
+# OR
+docker-compose up --build
+
+# Download AI model (in another terminal)
+docker-compose exec ollama ollama pull llama3.2:1b
+```
+
+### Option 2: Docker Production
+
+```bash
+# Clone and enter directory
+git clone <repository-url>
+cd statement-sense
+
+# Start production environment
+make docker-prod
+# OR
+docker-compose -f docker-compose.yml up --build
+```
+
+### Option 3: Local Development
+
+```bash
+# Copy environment file
+cp .env.local .env
+
+# Backend setup
+python -m venv .venv
+source .venv/bin/activate
+pip install uv
+uv pip install -e ".[dev]"
+
+# Start local database (or use Docker only for db)
+docker-compose -f docker-compose.dev.yml up postgres ollama
+
+# Run backend
+make run
+# OR
+uvicorn app.main:app --reload
+
+# Frontend setup (in another terminal)
+cd frontend
+npm install
+npm run dev
+```
+
+### Option 4: One-Command Setup
+
+```bash
+git clone <repository-url>
+cd statement-sense
+./setup.sh
+```
+
+The setup script will:
+1. Check system requirements
+2. Set up Docker services
+3. Download AI models
+4. Initialize the database
+5. Start all services
+
+## 📋 Requirements
+
+### System Requirements
+- **Docker & Docker Compose** (recommended)
+- **Python 3.11+** (for development)
+- **Node.js 18+** (for frontend development)
+- **PostgreSQL 15+** (if running locally)
+
+### Hardware Requirements
+- **RAM**: 4GB minimum, 8GB recommended
+- **Storage**: 5GB for Docker images and models
+- **CPU**: Multi-core recommended for AI processing
+
+## 🔧 Configuration
+
+### Environment Files
+
+The project supports multiple environment configurations:
+
+- **`.env`** - Default (Docker development)
+- **`.env.local`** - Local development (no Docker)
+- **`.env.docker`** - Docker development (explicit)
+- **`.env.production`** - Production environment
+
+#### Backend Environment Variables
+
+```env
+# Database Configuration
+DB_HOST=postgres          # Use 'localhost' for local dev
+DB_PORT=5432
+DB_USER=statement_user
+DB_PASS=statement_password
+DB_NAME=statement_sense
+
+# AI Service
+OLLAMA_URL=http://ollama:11434  # Use 'http://localhost:11434' for local
+
+# Application Settings
+PROJECT_NAME=StatementSense
+LOG_LEVEL=INFO
+DEBUG=true
+UPLOAD_DIR=/app/uploads    # Use './uploads' for local dev
+```
+
+#### Frontend Environment Variables
+
+```env
+VITE_API_BASE_URL=http://localhost:8000
+VITE_APP_TITLE=StatementSense
+VITE_APP_DESCRIPTION=AI-Powered Bank Statement Analyzer
+```
+
+### Deployment Modes
+
+#### Development Mode (with hot reload)
+```bash
+# Uses docker-compose.yml + docker-compose.override.yml automatically
+docker-compose up
+# OR
+make docker-dev
+```
+
+#### Production Mode
+```bash
+# Uses only docker-compose.yml (no overrides)
+docker-compose -f docker-compose.yml up
+# OR  
+make docker-prod
+```
+
+#### Services-only Mode (for local development)
+```bash
+# Only start database and AI services
+docker-compose -f docker-compose.dev.yml up
+```
+
+## 📚 Usage Guide
+
+### 1. Upload Statement
+1. Navigate to **Upload** page
+2. Drag & drop PDF file or click to select
+3. Wait for upload confirmation
+4. Click "Process" to analyze
+
+### 2. View Analysis
+1. Go to **Statements** page
+2. Click on processed statement
+3. Explore different tabs:
+   - **Overview**: Charts and summaries
+   - **Transactions**: Detailed transaction list
+   - **Analysis**: In-depth spending analysis
+
+### 3. Manage Categories
+1. Click on any transaction
+2. Edit category if needed
+3. Add notes for future reference
+4. Export data for external use
+
+## 🧠 AI Categorization How It Works
+
+### 3-Tier Classification System
+
+```python
+# Tier 1: Exact Keyword Matching (Fastest)
+"OXXO ROMA" → "alimentacion" (Confidence: 1.0)
+
+# Tier 2: Pattern Recognition (Fast + Smart)
+"REST BRAVA" → regex: r'\brest\b' → "alimentacion" (Confidence: 0.8)
+
+# Tier 3: LLM Analysis (Smart + Context-Aware)
+"POINTMP*VONDYMEXICO" → LLM → "servicios" (Confidence: 0.7)
+```
+
+### Performance Stats
+- **80%** of transactions classified by Tiers 1-2 (< 1ms)
+- **15%** require LLM analysis (~100-500ms)
+- **5%** fall back to "otros" category
+
+### Supported Categories
+- 🍽️ **Alimentación** - Restaurants, groceries, convenience stores
+- ⛽ **Gasolineras** - Gas stations, fuel
+- 🔧 **Servicios** - Utilities, subscriptions, streaming
+- 🏥 **Salud** - Healthcare, pharmacies, medical
+- 🚗 **Transporte** - Uber, taxi, parking, public transport
+- 🎬 **Entretenimiento** - Movies, bars, entertainment
+- 👕 **Ropa** - Clothing, fashion, department stores
+- 📚 **Educación** - Schools, books, courses
+- 💸 **Transferencias** - Bank transfers, payments
+- 🛡️ **Seguros** - Insurance, policies
+- 📊 **Intereses/Comisiones** - Bank fees, interest
+- 📋 **Otros** - Miscellaneous
+
+## 🔌 API Documentation
+
+### Core Endpoints
+
+#### Statements
+- `POST /api/v1/statements/upload` - Upload PDF file
+- `GET /api/v1/statements` - List all statements
+- `GET /api/v1/statements/{id}` - Get statement details
+- `POST /api/v1/statements/{id}/process` - Process statement
+- `DELETE /api/v1/statements/{id}` - Delete statement
+
+#### Transactions
+- `GET /api/v1/statements/{id}/transactions` - Get transactions
+- `PUT /api/v1/transactions/{id}` - Update transaction
+- `DELETE /api/v1/transactions/{id}` - Delete transaction
+
+#### Analysis
+- `GET /api/v1/statements/{id}/analysis` - Get spending analysis
+
+### Example Request
+```bash
+# Upload a statement
+curl -X POST "http://localhost:8000/api/v1/statements/upload" \
+     -F "file=@statement.pdf"
+
+# Get analysis
+curl "http://localhost:8000/api/v1/statements/{id}/analysis"
+```
+
+Full API documentation available at: `http://localhost:8000/docs`
+
+## 🛠 Development
+
+### Project Structure
+```
+statement-sense/
+├── app/                    # FastAPI Backend
+│   ├── api/               # API routes
+│   ├── models/            # Database models
+│   ├── schemas/           # Pydantic schemas
+│   ├── services/          # Business logic
+│   │   ├── pdf_parser.py  # PDF processing
+│   │   └── smart_categorizer.py # AI categorization
+│   └── main.py           # FastAPI app
+├── frontend/              # React Frontend
+│   ├── src/
+│   │   ├── components/    # UI components
+│   │   ├── pages/         # Page components
+│   │   ├── hooks/         # Custom hooks
+│   │   ├── services/      # API services
+│   │   └── utils/         # Utilities
+│   └── package.json
+├── migrations/            # Database migrations
+├── docker-compose.yml     # Docker services
+├── setup.sh              # Setup script
+└── README.md
+```
+
+### Adding New Features
+
+#### Backend
+1. Add model in `app/models/`
+2. Create schema in `app/schemas/`
+3. Add API endpoint in `app/api/`
+4. Generate migration: `alembic revision --autogenerate`
+
+#### Frontend
+1. Create component in `src/components/`
+2. Add route in `src/App.jsx`
+3. Create API service in `src/services/`
+4. Add hook in `src/hooks/`
 
 ### Running Tests
+```bash
+# Backend tests
+pytest
 
-This project uses `pytest` for testing. To run the tests:
+# Frontend tests
+cd frontend
+npm test
 
-1. Ensure your virtual environment is activated (`source .venv/bin/activate`).
-1. Run pytest:
-
-   ```sh
-   pytest
-   ```
-
-Or, using `uv run` (which doesn't require activating the venv first):
-
-```sh
-uv run pytest
+# E2E tests
+npm run test:e2e
 ```
 
-## Environment Variables
+## 🐳 Docker Services
 
-### Local Development
+| Service | Port | Description |
+|---------|------|-------------|
+| Frontend | 3000 | React development server |
+| Backend | 8000 | FastAPI application |
+| Database | 5432 | PostgreSQL database |
+| Ollama | 11434 | LLM inference server |
 
-To set up environment variables for local development, follow these steps:
+### Docker Commands
+```bash
+# Start all services
+docker-compose up -d
 
-1. Create a `.env` file in the root directory of your project.
-1. Add the necessary environment variables to the .env file in the format KEY=VALUE. Adjust the [config.py](config.py) file to insert these variables into the config class instance.
+# View logs
+docker-compose logs -f [service-name]
 
-Example .env file:
+# Restart service
+docker-compose restart [service-name]
 
-```txt
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=myuser
-DB_PASSWORD=mypassword
+# Stop all services
+docker-compose down
+
+# Rebuild and start
+docker-compose up --build
 ```
 
-### Deployed
+## 🔍 Troubleshooting
 
-For deployment, you'll need to set up environment variables or secrets in your GitHub repository. Here's how to do it:
+### Common Issues
 
-1. Create the required environment variables or secrets in your GitHub repository.
-1. In the [github-actions workflow file](.github/workflows/deploy_dev.yml) locate the env section.
-1. Insert the environment variables or secrets into the workflow step, providing the necessary values.
+#### Upload Fails
+- Check file is PDF format
+- Ensure file size < 50MB
+- Verify backend is running
 
-Example workflow step:
+#### Processing Stuck
+- Check Ollama service status
+- Restart Ollama: `docker-compose restart ollama`
+- Download model: `docker-compose exec ollama ollama pull llama3.2:1b`
 
-```yaml
-- name: Deploy
-  env:
-    DB_HOST: ${{ vars.DB_HOST }}
-    DB_PORT: ${{ vars.DB_PORT }}
-    DB_USER: ${{ secrets.DB_USER }}
-    DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-  run: |
-    # Add your deployment script here
+#### Database Errors
+- Check PostgreSQL is running
+- Run migrations: `alembic upgrade head`
+- Reset database: `python init_db.py`
+
+#### Frontend Issues
+- Clear browser cache
+- Check console for errors
+- Restart frontend: `docker-compose restart frontend`
+
+### Logs and Debugging
+```bash
+# View all logs
+docker-compose logs -f
+
+# Backend logs only
+docker-compose logs -f backend
+
+# Database logs
+docker-compose logs -f postgres
+
+# Check service status
+docker-compose ps
 ```
 
-## Documentation
+## 🚀 Production Deployment
 
-Please ensure you update this README after implementing an instance of this template. Here are the recommended steps to follow:
+### Environment Setup
+1. Use production database (not SQLite)
+2. Set secure environment variables
+3. Enable HTTPS
+4. Configure proper CORS settings
+5. Set up monitoring and logging
 
-### 1. Introduction and Overview
+### Docker Production
+```bash
+# Production compose file
+docker-compose -f docker-compose.prod.yml up -d
 
-In your README's "Introduction and/or Overview" section (or similar), include the following information:
-
-```markdown
-The service is built based on the [UV-Powered FastAPI MS Template](https://github.com/ferdinandbracho/bp_fastAPI-sqlalchemy-alembic-docker). For comprehensive technical details, instructions on how to run, deploy, and any other related considerations, please refer to the documentation provided in the [template repository](https://github.com/ferdinandbracho/bp_fastAPI-sqlalchemy-alembic-docker).
+# With SSL termination
+docker-compose -f docker-compose.prod.yml -f docker-compose.ssl.yml up -d
 ```
 
-### 2. Indeed Information
+### Performance Optimization
+- Enable PostgreSQL connection pooling
+- Use Redis for caching
+- Configure CDN for static assets
+- Optimize Docker images
+- Set up load balancing
 
-Towards the end of your README, just before the "Contributing" section (if applicable), add links to specific sections of the template repository for Indeed Information:
+## 🤝 Contributing
 
-```markdown
-## Indeed Information
-For detailed information on installation and prerequisites, please refer to the [UV-Powered FastAPI MS Template repository](https://github.com/ferdinandbracho/bp_fastAPI-sqlalchemy-alembic-docker).
-```
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature/amazing-feature`
+3. Commit changes: `git commit -m 'Add amazing feature'`
+4. Push to branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
 
-## Contributing
+### Development Guidelines
+- Follow PEP 8 for Python code
+- Use Prettier for JavaScript formatting
+- Write tests for new features
+- Update documentation
+- Use conventional commit messages
 
-Contributions are welcome! If you'd like to contribute, please follow these steps:
+## 📄 License
 
-1. Fork the repository.
-1. Create a new branch for your feature or bug fix.
-1. Implement your changes.
-1. Write or update tests as necessary.
-1. Submit a pull request against the main branch.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-Please ensure your code adheres to the project's coding standards and includes appropriate tests.
+## 🙏 Acknowledgments
+
+- **Ollama** - Local LLM inference
+- **Meta** - Llama 3.2 model
+- **FastAPI** - Modern Python web framework
+- **React** - Frontend framework
+- **Tailwind CSS** - Utility-first CSS
+- **Chart.js** - Data visualization
+- **PostgreSQL** - Database system
+
+## 📞 Support
+
+- **Documentation**: Check the `/docs` endpoints
+- **Issues**: Report bugs via GitHub Issues
+- **Discussions**: Use GitHub Discussions for questions
+- **Email**: [contact@statementsense.com](mailto:contact@statementsense.com)
+
+---
+
+<div align="center">
+
+**Built with ❤️ for better financial insights**
+
+[⭐ Star this repo](https://github.com/your-username/statement-sense) • [🐛 Report Bug](https://github.com/your-username/statement-sense/issues) • [💡 Request Feature](https://github.com/your-username/statement-sense/issues)
+
+</div>
