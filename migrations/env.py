@@ -2,7 +2,7 @@ from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
-from app.config import config as cf
+from app.config import settings
 from alembic import context
 
 # this is the Alembic Config object, which provides
@@ -16,10 +16,10 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-# from app.db.session import Base
-# from app.db.base import Base
-from app.db.session import Base
-from app.models import *
+from app.db.base import Base
+# Import all models to ensure they are registered
+from app.models.statement import BankStatement, Transaction, CategoryRule, ProcessingLog  # noqa
+
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
@@ -27,8 +27,8 @@ target_metadata = Base.metadata
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
-# Setting database url
-config.set_main_option('sqlalchemy.url', cf.database_url)
+# Setting database url from our settings
+config.set_main_option('sqlalchemy.url', str(settings.DATABASE_URL))
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
