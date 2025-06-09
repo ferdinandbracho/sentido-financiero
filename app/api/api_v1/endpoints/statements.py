@@ -6,7 +6,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
-from sqlalchemy.orm import Session
+from sqlalchemy import text
+from sqlalchemy.orm import Session, joinedload
 
 from app.config import settings
 from app.crud import CRUDBase
@@ -32,7 +33,10 @@ transaction_crud = CRUDBase[Transaction, None, None](Transaction)
 
 # Service instances  
 pdf_parser = PDFStatementParser()
-categorizer = SmartCategorizer(ollama_url=os.getenv('OLLAMA_URL', 'http://localhost:11434'))
+categorizer = SmartCategorizer(
+    openai_api_key=settings.OPENAI_API_KEY,
+    model_name=settings.OPENAI_MODEL
+)
 
 # Ensure upload directory exists
 UPLOAD_DIR = Path("uploads")
@@ -67,6 +71,7 @@ async def upload_statement(
             detail="El archivo excede el límite de 50MB"
         )
     
+    file_path = None  # Initialize file_path
     try:
         # Save file to a temporary location for parsing
         temp_file_path = UPLOAD_DIR / f"temp_{file.filename}"
@@ -154,7 +159,7 @@ async def upload_statement(
     except Exception as e:
         logger.error(f"Error uploading file: {str(e)}")
         # Clean up file if database operation failed
-        if file_path.exists():
+        if file_path and file_path.exists():
             file_path.unlink()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -338,9 +343,6 @@ def get_statement(
     """
     Get detailed information about a specific statement
     """
-    from sqlalchemy.orm import joinedload
-    from sqlalchemy import text
-    
     # Convert UUID to string for direct comparison
     statement_id_str = str(statement_id)
     
