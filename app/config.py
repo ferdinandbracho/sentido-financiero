@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     DB_USER: str
     DB_PASS: str
     DB_HOST: str
-    DB_PORT: str = "5432"
+    DB_PORT: int = 5432
     DB_NAME: str
     DATABASE_URL: Optional[PostgresDsn] = None
     
@@ -48,7 +48,7 @@ class Settings(BaseSettings):
             password=values.get("DB_PASS"),
             host=values.get("DB_HOST"),
             port=values.get("DB_PORT"),
-            path=f"/{values.get('DB_NAME') or ''}",
+            path=f"{values.get('DB_NAME') or ''}",
             query="client_encoding=utf8"
         )
         
@@ -117,8 +117,11 @@ class Settings(BaseSettings):
             if ext.strip()
         ]
     
-    # Ollama
-    OLLAMA_URL: HttpUrl = "http://localhost:11434"
+    # OpenAI Configuration
+    OPENAI_API_KEY: str
+    OPENAI_MODEL: str = "gpt-3.5-turbo"  # Can be changed to gpt-4 for better accuracy
+    OPENAI_MAX_TOKENS: int = 150
+    OPENAI_TEMPERATURE: float = 0.1
     
     # Logging
     LOG_LEVEL: str = "INFO"
