@@ -1,8 +1,8 @@
-# 🚀 StatementSense - AI-Powered Bank Statement Analyzer
+# 🚀 SentidoFinanciero - AI-Powered Bank Statement Analyzer
 
 A modern, full-stack application that uses OpenAI's GPT models through LangChain to automatically categorize and analyze bank statement transactions. Upload PDF statements and get intelligent insights about your spending patterns.
 
-![StatementSense Demo](https://via.placeholder.com/800x400/3B82F6/FFFFFF?text=StatementSense+Demo)
+![SentidoFinanciero Demo](https://via.placeholder.com/800x400/3B82F6/FFFFFF?text=SentidoFinanciero+Demo)
 
 ## ✨ Features
 
@@ -140,7 +140,7 @@ OPENAI_MAX_TOKENS=150
 OPENAI_TEMPERATURE=0.1
 
 # Application Settings
-PROJECT_NAME=StatementSense
+PROJECT_NAME=SentidoFinanciero
 LOG_LEVEL=INFO
 DEBUG=true
 UPLOAD_DIR=./uploads
@@ -451,7 +451,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Documentation**: Check the `/docs` endpoints
 - **Issues**: Report bugs via GitHub Issues
 - **Discussions**: Use GitHub Discussions for questions
-- **Email**: [contact@statementsense.com](mailto:contact@statementsense.com)
+- **Email**: [contact@SentidoFinanciero.com](mailto:contact@SentidoFinanciero.com)
 
 ---
 

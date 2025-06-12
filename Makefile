@@ -2,7 +2,7 @@
 
 # Default command: Display help
 help:
-	@echo "Available commands for StatementSense development:"
+	@echo "Available commands for SentidoFinanciero development:"
 	@echo "  make up            Start all services in development mode"
 	@echo "  make down          Stop and remove all containers and volumes"
 	@echo "  make logs          Show logs from all services"
@@ -34,13 +34,23 @@ ps:
 # Restart all services
 restart: down up
 
-# Clean everything
-clean: down
+# Clean everything - file system only (no Docker)
+clean:
 	@echo "Removing temporary files and build artifacts..."
-	rm -rf .pytest_cache .mypy_cache .ruff_cache build/ dist/ *.egg-info/ venv/ .venv/ uploads/
-	find . -type f -name '*.pyc' -delete
+	# Python
+	rm -rf .pytest_cache/ .mypy_cache/ .ruff_cache/ .coverage htmlcov/
+	rm -rf build/ dist/ *.egg-info/
+	rm -rf venv/ .venv/ .eggs/
+	# Node/JS
+	rm -rf frontend/node_modules/ frontend/.next/ frontend/.turbo/ frontend/.cache/
+	# Python cache and temp files
+	find . -type f -name '*.py[co]' -delete -o -name '*.so' -delete
 	find . -type d -name '__pycache__' -exec rm -rf {} +
-	@echo "Clean up complete."
+	# IDE and editor files
+	rm -rf .idea/ .vscode/ *.swp *.swo *~
+	# Logs and local files
+	rm -rf logs/ uploads/ .mypy_cache/ .pytest_cache/
+	@echo "Filesystem clean up complete."
 
 # Database shell
 db-shell:

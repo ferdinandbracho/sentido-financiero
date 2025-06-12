@@ -1,6 +1,6 @@
-# StatementSense Frontend
+# SentidoFinanciero Frontend
 
-Modern React frontend for the StatementSense AI-powered bank statement analyzer.
+Modern React frontend for the SentidoFinanciero AI-powered bank statement analyzer.
 
 ## 🚀 Features
 
@@ -56,7 +56,7 @@ Create a `.env` file in the frontend directory:
 
 ```env
 VITE_API_BASE_URL=http://localhost:8000
-VITE_APP_TITLE=StatementSense
+VITE_APP_TITLE=SentidoFinanciero
 VITE_APP_DESCRIPTION=AI-Powered Bank Statement Analyzer
 ```
 

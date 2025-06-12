@@ -40,7 +40,7 @@ services:
       - DB_NAME=statement_sense
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-3.5-turbo}
-      - PROJECT_NAME=StatementSense (Dev)
+      - PROJECT_NAME=SentidoFinanciero (Dev)
       - LOG_LEVEL=DEBUG
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
     depends_on:
@@ -62,7 +62,7 @@ services:
     environment:
       - VITE_API_BASE_URL=http://backend:8000
       - VITE_PROXY_TARGET=http://backend:8000
-      - VITE_APP_TITLE=StatementSense (Dev)
+      - VITE_APP_TITLE=SentidoFinanciero (Dev)
       - CHOKIDAR_USEPOLLING=true  # For hot reloading in Docker
     depends_on:
       - backend
