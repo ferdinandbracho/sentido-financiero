@@ -1,4 +1,4 @@
-.PHONY: help up down logs ps restart clean db-shell backend-shell frontend-shell
+.PHONY: help up down logs ps restart clean db-shell backend-shell frontend-shell migrate-create migrate-apply
 
 # Default command: Display help
 help:
@@ -12,6 +12,8 @@ help:
 	@echo "  make db-shell      Open a PostgreSQL shell"
 	@echo "  make backend-shell Open a shell in the backend container"
 	@echo "  make frontend-shell Open a shell in the frontend container"
+	@echo "  make migrate-create MSG=\"your_migration_message\"  Create a new database migration"
+	@echo "  make migrate-apply   Apply pending database migrations"
 
 # Start all services in development mode
 up:
@@ -39,6 +41,20 @@ clean:
 	@echo "Removing temporary files and build artifacts..."
 	# Python
 	rm -rf .pytest_cache/ .mypy_cache/ .ruff_cache/ .coverage htmlcov/
+
+# Database Migrations (Alembic)
+# Example: make migrate-create MSG="add user table"
+migrate-create:
+	@if [ -z "$(MSG)" ]; then \
+		echo "Error: Migration message is required. Usage: make migrate-create MSG=\"your_migration_message\""; \
+		exit 1; \
+	fi
+	@echo "Creating migration: $(MSG)..."
+	.venv/bin/alembic revision -m "$(MSG)"
+
+migrate-apply:
+	@echo "Applying database migrations..."
+	.venv/bin/alembic upgrade head
 	rm -rf build/ dist/ *.egg-info/
 	rm -rf venv/ .venv/ .eggs/
 	# Node/JS

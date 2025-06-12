@@ -32,6 +32,28 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "./uploads"
     MAX_FILE_SIZE: int = 50 * 1024 * 1024  # 50MB
 
+    @field_validator("MAX_FILE_SIZE", mode="before")
+    @classmethod
+    def parse_max_file_size(cls, v: Any) -> int:
+        if isinstance(v, int):
+            return v
+        if isinstance(v, str):
+            v = v.strip()
+            # Handle '50MB' format
+            if v.upper().endswith("MB"):
+                return int(float(v[:-2].strip()) * 1024 * 1024)
+            # Handle '50KB' format
+            if v.upper().endswith("KB"):
+                return int(float(v[:-2].strip()) * 1024)
+            # Handle '50B' format
+            if v.upper().endswith("B"):
+                return int(float(v[:-1].strip()))
+            # Try to convert to int directly
+            return int(v)
+        raise ValueError(
+            f"MAX_FILE_SIZE must be an integer or a string with units (e.g., '50MB'), got {v}"
+        )
+
     # Database Configuration
     DB_USER: str
     DB_PASS: str
@@ -47,34 +69,53 @@ class Settings(BaseSettings):
     def assemble_db_connection(
         cls, v: Optional[str], info: ValidationInfo
     ) -> Any:
-        if isinstance(
-            v, str
-        ):  # If DATABASE_URL is already explicitly set in .env
+        # If DATABASE_URL is explicitly set in .env, parse it
+        if isinstance(v, str):
+            # Ensure the URL has the correct scheme
+            if not v.startswith(("postgresql://", "postgresql+psycopg2://")):
+                v = v.replace("postgres://", "postgresql://", 1)
+                if not v.startswith("postgresql://"):
+                    v = f"postgresql://{v}"
             return v
 
-        # Get values from the .env file or defaults
+        # Otherwise, construct it from individual components
         values = info.data
         required_keys = ["DB_USER", "DB_PASS", "DB_HOST", "DB_PORT", "DB_NAME"]
+
+        # Check if all required keys are present
         if not all(values.get(key) for key in required_keys):
-            # Get a temp logger instance or use print for early config issues
             temp_logger = logging.getLogger(__name__)
             temp_logger.warning(
-                "Critical database configuration variables are missing in .env."
+                "Critical database configuration variables are missing in .env. "
                 "Cannot construct DATABASE_URL."
             )
-            # Pydantic will still raise ValidationError for individually missing *required* root fields. # noqa: E501
-            # This part of the validator is for the case where DATABASE_URL itself isn't set, # noqa: E501
-            # and we are trying to build it from components.
             return None
 
-        return PostgresDsn.build(
-            scheme="postgresql+psycopg2",  # Keep this, will change to asyncpg later for async # noqa: E501
-            username=values.get("DB_USER"),
-            password=values.get("DB_PASS"),
-            host=values.get("DB_HOST"),
-            port=int(values.get("DB_PORT")),  # Ensure port is an int
-            path=f"/{values.get('DB_NAME') or ''}",
+        # Get and clean the database name
+        db_name = (values.get("DB_NAME") or "").strip().lstrip("/")
+        if not db_name:
+            raise ValueError("Database name (DB_NAME) is required in .env")
+
+        # Build the URL components
+        user = values.get("DB_USER", "").strip()
+        password = values.get("DB_PASS", "").strip()
+        host = values.get("DB_HOST", "localhost").strip()
+        port = str(values.get("DB_PORT", "5432")).strip()
+
+        # Construct the URL using string formatting for better control
+        auth_part = f"{user}:{password}@" if user and password else ""
+        port_part = f":{port}" if port else ""
+        path_part = f"/{db_name}"
+
+        db_url = (
+            f"postgresql+psycopg2://{auth_part}{host}{port_part}{path_part}"
         )
+
+        # Validate the constructed URL
+        try:
+            return PostgresDsn(db_url)
+        except ValueError as e:
+            raise ValueError(f"Invalid database URL format: {e}") from e
 
     # Example Configuration (optional fields)
     EXAMPLE_URL: Optional[str] = None

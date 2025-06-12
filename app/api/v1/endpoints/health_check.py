@@ -17,4 +17,4 @@ def health_check() -> Dict[Any, Any]:
     return 200
     """
 
-    return {'message': 'Users - service active'}
+    return {'message': 'SentidoFinanciero - service active'}

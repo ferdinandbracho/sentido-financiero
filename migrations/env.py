@@ -1,9 +1,16 @@
+import os
+import sys
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
-from app.config import settings
 from alembic import context
+
+# Add the project root to the Python path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
+# Import settings after path is set up
+from app.config import settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -14,12 +21,13 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
+# Import the Base after the path is set up
 from app.db.base import Base
-# Import all models to ensure they are registered
-from app.models.statement import BankStatement, Transaction, CategoryRule, ProcessingLog  # noqa
 
+# Import all models to ensure they are registered with SQLAlchemy
+from app.models import *  # noqa: F401, F403
+
+# Set up the target metadata
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
@@ -28,7 +36,11 @@ target_metadata = Base.metadata
 # ... etc.
 
 # Setting database url from our settings
-config.set_main_option('sqlalchemy.url', str(settings.DATABASE_URL))
+# Convert the database URL to a string and ensure it's properly formatted
+db_url = str(settings.DATABASE_URL)
+# Ensure the URL doesn't have double slashes in the path
+db_url = db_url.replace('///', '//').replace('postgresql+psycopg2://', 'postgresql://')
+config.set_main_option('sqlalchemy.url', db_url)
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
