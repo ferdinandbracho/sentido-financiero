@@ -2,10 +2,9 @@
 trigger: always_on
 ---
 
-
 ## 📋 Project Overview
 
-StatementSense is a complete full-stack application that uses artificial intelligence to automatically categorize and analyze bank statement transactions. Upload PDF statements and get intelligent insights about your spending patterns using local AI processing.
+SentidoFinanciero is a complete full-stack application that uses artificial intelligence to automatically categorize and analyze bank statement transactions. Upload PDF statements and get intelligent insights about your spending patterns using local AI processing.
 
 ## 🏗 Architecture
 

@@ -905,19 +905,6 @@ wheels = [
 ]
 
 [[package]]
-name = "ollama"
-version = "0.5.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "httpx" },
-    { name = "pydantic" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/8d/96/c7fe0d2d1b3053be614822a7b722c7465161b3672ce90df71515137580a0/ollama-0.5.1.tar.gz", hash = "sha256:5a799e4dc4e7af638b11e3ae588ab17623ee019e496caaf4323efbaa8feeff93", size = 41112, upload-time = "2025-05-30T21:32:48.679Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d6/76/3f96c8cdbf3955d7a73ee94ce3e0db0755d6de1e0098a70275940d1aff2f/ollama-0.5.1-py3-none-any.whl", hash = "sha256:4c8839f35bc173c7057b1eb2cbe7f498c1a7e134eafc9192824c8aecb3617506", size = 13369, upload-time = "2025-05-30T21:32:47.429Z" },
-]
-
-[[package]]
 name = "openai"
 version = "1.84.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1444,6 +1431,18 @@ wheels = [
 ]
 
 [[package]]
+name = "pytest-asyncio"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pytest" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d0/d4/14f53324cb1a6381bef29d698987625d80052bb33932d8e7cbf9b337b17c/pytest_asyncio-1.0.0.tar.gz", hash = "sha256:d15463d13f4456e1ead2594520216b225a16f781e144f8fdf6c5bb4667c48b3f", size = 46960, upload-time = "2025-05-26T04:54:40.484Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/30/05/ce271016e351fddc8399e546f6e23761967ee09c8c568bbfbecb0c150171/pytest_asyncio-1.0.0-py3-none-any.whl", hash = "sha256:4f024da9f1ef945e680dc68610b52550e36590a67fd31bb3b4943979a1f90ef3", size = 15976, upload-time = "2025-05-26T04:54:39.035Z" },
+]
+
+[[package]]
 name = "pytest-cov"
 version = "6.1.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1733,8 +1732,9 @@ dependencies = [
     { name = "fastapi" },
     { name = "httpx" },
     { name = "langchain" },
+    { name = "langchain-core" },
     { name = "langchain-openai" },
-    { name = "ollama" },
+    { name = "openai" },
     { name = "pandas" },
     { name = "pdfplumber" },
     { name = "psycopg2-binary" },
@@ -1745,6 +1745,7 @@ dependencies = [
     { name = "python-multipart" },
     { name = "regex" },
     { name = "sqlalchemy" },
+    { name = "tiktoken" },
     { name = "uvicorn" },
 ]
 
@@ -1756,6 +1757,7 @@ dev = [
     { name = "pip-audit" },
     { name = "pre-commit" },
     { name = "pytest" },
+    { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "ruff" },
 ]
@@ -1768,9 +1770,10 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "isort", marker = "extra == 'dev'", specifier = ">=5.13.2" },
     { name = "langchain", specifier = ">=0.3.25" },
+    { name = "langchain-core", specifier = ">=0.3.37" },
     { name = "langchain-openai", specifier = ">=0.3.21" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.9.0" },
-    { name = "ollama", specifier = ">=0.4.2" },
+    { name = "openai", specifier = ">=1.55.0" },
     { name = "pandas", specifier = ">=2.2.0" },
     { name = "pdfplumber", specifier = ">=0.10.3" },
     { name = "pip-audit", marker = "extra == 'dev'", specifier = ">=2.7.3" },
@@ -1779,6 +1782,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.11.4" },
     { name = "pydantic-settings", specifier = ">=2.3.4" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.3.2" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.24.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0.0" },
     { name = "python-dateutil", specifier = ">=2.8.2" },
     { name = "python-dotenv", specifier = ">=1.1.0" },
@@ -1786,6 +1790,7 @@ requires-dist = [
     { name = "regex", specifier = ">=2023.10.3" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.3.4" },
     { name = "sqlalchemy", specifier = ">=2.0.41" },
+    { name = "tiktoken", specifier = ">=0.8.0" },
     { name = "uvicorn", specifier = ">=0.34.2" },
 ]
 provides-extras = ["dev"]

@@ -1,149 +1,120 @@
-
 import logging
 import pathlib
-from functools import lru_cache
-from typing import Any, List, Optional
+from typing import Any, Optional
 
-from pydantic import HttpUrl, PostgresDsn, ValidationInfo, field_validator
+from pydantic import PostgresDsn, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Determine the project root directory to reliably find the .env file
+# This assumes config.py is in a subdirectory of the project root (e.g., app/config.py) # noqa: E501
+# Adjust if your structure is different.
 PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 ENV_FILE_PATH = PROJECT_ROOT / ".env"
+
 
 class Settings(BaseSettings):
     # Pydantic settings configuration
     model_config = SettingsConfigDict(
-        env_file=ENV_FILE_PATH,
+        env_file=ENV_FILE_PATH,  # Load from .env file at project root
         env_file_encoding="utf-8",
-        extra="ignore",
-        case_sensitive=True
+        extra="ignore",  # Ignore extra fields not defined in the model
     )
 
-    # Project Meta
     PROJECT_NAME: str = "StatementSense"
-    ENVIRONMENT: str = "development"
-    DEBUG: bool = True
+
+    # OpenAI settings
+    OPENAI_API_KEY: str
+    OPENAI_MODEL: str = "gpt-3.5-turbo"
+    OPENAI_MAX_TOKENS: int = 150
+    OPENAI_TEMPERATURE: float = 0.1
+
+    # Upload settings
+    UPLOAD_DIR: str = "./uploads"
+    MAX_FILE_SIZE: int = 50 * 1024 * 1024  # 50MB
 
     # Database Configuration
     DB_USER: str
     DB_PASS: str
     DB_HOST: str
-    DB_PORT: int = 5432
+    DB_PORT: str = "5432"  # Default PostgreSQL port
     DB_NAME: str
+    # DATABASE_URL will be assembled by the validator below
+    # It's Optional here because it's constructed, not directly loaded
     DATABASE_URL: Optional[PostgresDsn] = None
-    
+
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def assemble_db_connection(
         cls, v: Optional[str], info: ValidationInfo
     ) -> Any:
-        if isinstance(v, str):
+        if isinstance(
+            v, str
+        ):  # If DATABASE_URL is already explicitly set in .env
             return v
-            
+
+        # Get values from the .env file or defaults
         values = info.data
+        required_keys = ["DB_USER", "DB_PASS", "DB_HOST", "DB_PORT", "DB_NAME"]
+        if not all(values.get(key) for key in required_keys):
+            # Get a temp logger instance or use print for early config issues
+            temp_logger = logging.getLogger(__name__)
+            temp_logger.warning(
+                "Critical database configuration variables are missing in .env."
+                "Cannot construct DATABASE_URL."
+            )
+            # Pydantic will still raise ValidationError for individually missing *required* root fields. # noqa: E501
+            # This part of the validator is for the case where DATABASE_URL itself isn't set, # noqa: E501
+            # and we are trying to build it from components.
+            return None
+
         return PostgresDsn.build(
-            scheme="postgresql+psycopg2",
+            scheme="postgresql+psycopg2",  # Keep this, will change to asyncpg later for async # noqa: E501
             username=values.get("DB_USER"),
             password=values.get("DB_PASS"),
             host=values.get("DB_HOST"),
-            port=values.get("DB_PORT"),
-            path=f"{values.get('DB_NAME') or ''}",
-            query="client_encoding=utf8"
+            port=int(values.get("DB_PORT")),  # Ensure port is an int
+            path=f"/{values.get('DB_NAME') or ''}",
         )
-        
-    # Security
-    SECRET_KEY: str
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    
-    # CORS
-    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000"]
-    
-    @field_validator('BACKEND_CORS_ORIGINS', mode='before')
-    @classmethod
-    def assemble_cors_origins(cls, v: str | list[str]) -> list[str] | str:
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",")]
-        elif isinstance(v, (list, str)):
-            return v
-        raise ValueError(v)
-    
-    # File Upload
-    UPLOAD_DIR: str = "uploads"
-    MAX_FILE_SIZE: str = "50MB"  # Can be in bytes, KB, MB, GB, etc.
-    ALLOWED_EXTENSIONS: str = "pdf"  # Comma-separated string
-    
-    @property
-    def max_file_size_bytes(self) -> int:
-        """Convert MAX_FILE_SIZE string to bytes."""
-        size_str = self.MAX_FILE_SIZE.upper().strip()
-        if not size_str:
-            return 0
-            
-        # Extract number and unit
-        num = ""
-        unit = ""
-        for char in size_str:
-            if char.isdigit() or char == '.':
-                num += char
-            else:
-                unit = char
-        
-        if not num:
-            return 0
-            
-        size = float(num)
-        unit = unit.upper()
-        
-        # Convert to bytes
-        if unit == 'B' or not unit:
-            return int(size)
-        elif unit == 'K':
-            return int(size * 1024)
-        elif unit == 'M':
-            return int(size * 1024 * 1024)
-        elif unit == 'G':
-            return int(size * 1024 * 1024 * 1024)
-        else:
-            # Default to bytes if unknown unit
-            return int(size)
-    
-    @property
-    def allowed_extensions_list(self) -> list[str]:
-        """Get allowed extensions as a list."""
-        return [
-            ext.strip() 
-            for ext in self.ALLOWED_EXTENSIONS.split(',')
-            if ext.strip()
-        ]
-    
-    # OpenAI Configuration
-    OPENAI_API_KEY: str
-    OPENAI_MODEL: str = "gpt-3.5-turbo"  # Can be changed to gpt-4 for better accuracy
-    OPENAI_MAX_TOKENS: int = 150
-    OPENAI_TEMPERATURE: float = 0.1
-    
-    # Logging
+
+    # Example Configuration (optional fields)
+    EXAMPLE_URL: Optional[str] = None
+    EXAMPLE_QUEUE_USERS: Optional[str] = None
+    EXAMPLE_ERROR: Optional[str] = None
+
+    # Logging Configuration
     LOG_LEVEL: str = "INFO"
 
     def get_logger(self, name: str) -> logging.Logger:
         """Configures and returns a logger instance."""
         logger = logging.getLogger(name)
-        if not logger.handlers:  # Avoid adding multiple handlers
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter(
-                "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-                datefmt="%Y-%m-%d %H:%M:%S",
-            )
-            handler.setFormatter(formatter)
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+        handler.setFormatter(formatter)
+        if (
+            not logger.handlers
+        ):  # Avoid adding multiple handlers if called multiple times
             logger.addHandler(handler)
-            logger.setLevel(self.LOG_LEVEL.upper())
+        logger.setLevel(self.LOG_LEVEL.upper())
+
+        # Consider adding a FileHandler like you had before if needed
+        # file_handler = logging.FileHandler(PROJECT_ROOT / "app.log")
+        # file_handler.setFormatter(formatter)
+        # logger.addHandler(file_handler)
+
         return logger
 
 
-@lru_cache()
-def get_settings() -> Settings:
-    return Settings()
+# Create a single instance of the settings to be used throughout the application
+settings = Settings()
 
-
-settings = get_settings()
+# Example: Get a logger for the current module (config.py)
+# You can get loggers in other modules similarly: from app.config import settings; logger = settings.get_logger(__name__) # noqa: E501
+# logger = settings.get_logger(__name__)
+# logger.info("Configuration loaded successfully.")
+# if settings.DATABASE_URL:
+#     logger.info(f"Database URL: {settings.DATABASE_URL}")
+# else:
+#     logger.warning("DATABASE_URL could not be constructed. Check .env file and DB settings.") # noqa: E501

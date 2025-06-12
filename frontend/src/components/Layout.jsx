@@ -14,7 +14,7 @@ export function Layout({ children }) {
                 className="flex items-center text-gray-900 hover:text-gray-700 transition-colors"
               >
                 <BarChart3 className="h-6 w-6 text-primary-600" />
-                <span className="ml-2 text-xl font-semibold">StatementSense</span>
+                <span className="ml-2 text-xl font-semibold">SentidoFinanciero</span>
               </Link>
             </div>
           </div>

@@ -1,4 +1,4 @@
-# Development Dockerfile for StatementSense
+# Development Dockerfile for SentidoFinanciero
 
 # Use Python 3.11 slim base image (more stable with current dependencies)
 FROM python:3.11-slim as base

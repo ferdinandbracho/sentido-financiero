@@ -1,6 +1,6 @@
 # 🚀 Deployment Guide
 
-This guide covers different deployment strategies for StatementSense, from local development to production deployment.
+This guide covers different deployment strategies for Sentido Financiero, from local development to production deployment.
 
 ## Quick Reference
 
