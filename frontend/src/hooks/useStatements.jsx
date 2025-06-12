@@ -17,7 +17,10 @@ export const QUERY_KEYS = {
 export const useStatements = (params = {}) => {
   return useQuery({
     queryKey: [QUERY_KEYS.statements, params],
-    queryFn: () => statementsAPI.getAll(params),
+    queryFn: async () => {
+      const data = await statementsAPI.getAll(params);
+      return data.statements || [];
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
   })
 }
