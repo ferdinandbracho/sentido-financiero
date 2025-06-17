@@ -7,7 +7,10 @@ parsing (Mexican statements) and LLM fallback parsing for other formats.
 Author: StatementSense
 Created: June 2025
 """
+
 import io
+
+import pytesseract
 from typing import Dict
 
 import pdfplumber
@@ -31,38 +34,73 @@ class PDFProcessor:
     def __init__(self):
         self.logger = logger
 
-    def extract_text_from_pdf(self, pdf_content: bytes) -> tuple[bool, str, str]:
+    def extract_text_from_pdf(
+        self, pdf_content: bytes
+    ) -> tuple[bool, str, str]:
         """Extract text content from PDF bytes using pdfplumber.
-        
+
         Returns:
             tuple: (success, text_content, error_message)
         """
         try:
             if not pdf_content:
                 return False, "", "PDF content is empty"
-                
-            self.logger.info(f"Starting PDF text extraction for {len(pdf_content)} bytes")
+
+            self.logger.info(
+                f"Starting PDF text extraction for {len(pdf_content)} bytes"
+            )
             pdf_file = io.BytesIO(pdf_content)
 
             text_content = ""
             try:
                 with pdfplumber.open(pdf_file) as pdf:
                     self.logger.info(f"Opened PDF with {len(pdf.pages)} pages")
-                    
+
                     if not pdf.pages:
                         return False, "", "PDF has no pages"
-                    
+
                     for page_num, page in enumerate(pdf.pages):
                         try:
-                            self.logger.debug(f"Extracting text from page {page_num + 1}")
+                            self.logger.debug(
+                                f"Extracting text from page {page_num + 1}"
+                            )
                             page_text = page.extract_text()
                             
                             if page_text:
-                                self.logger.debug(f"Extracted {len(page_text)} characters from page {page_num + 1}")
+                                self.logger.debug(
+                                    f"Extracted {len(page_text)} characters from page {page_num + 1}"
+                                )
                                 text_content += f"\n--- Page {page_num + 1} ---\n{page_text}"
                             else:
-                                self.logger.warning(f"No text extracted from page {page_num + 1}")
-                                
+                                # Fallback: OCR if no text layer detected
+                                try:
+                                    self.logger.debug(
+                                        "No text layer found, rasterising for OCR"
+                                    )
+                                    pil_image = page.to_image(resolution=300).original
+                                    ocr_text = pytesseract.image_to_string(
+                                        pil_image, lang="spa+eng"
+                                    )
+                                    if ocr_text and ocr_text.strip():
+                                        self.logger.debug(
+                                            f"OCR extracted {len(ocr_text)} characters from page {page_num + 1}"
+                                        )
+                                        text_content += (
+                                            f"\n--- Page {page_num + 1} (OCR) ---\n{ocr_text}"
+                                        )
+                                    else:
+                                        self.logger.warning(
+                                            f"OCR returned no text for page {page_num + 1}"
+                                        )
+                                except Exception as ocr_err:
+                                    self.logger.error(
+                                        f"OCR failed for page {page_num + 1}: {ocr_err}",
+                                        exc_info=True,
+                                    )
+                                self.logger.warning(
+                                    f"No text extracted from page {page_num + 1}"
+                                )
+
                         except Exception as e:
                             error_msg = f"Failed to extract text from page {page_num + 1}: {str(e)}"
                             self.logger.error(error_msg, exc_info=True)
@@ -75,7 +113,9 @@ class PDFProcessor:
                 self.logger.error(error_msg)
                 return False, "", error_msg
 
-            self.logger.info(f"Successfully extracted {len(text_content)} characters from PDF")
+            self.logger.info(
+                f"Successfully extracted {len(text_content)} characters from PDF"
+            )
             return True, text_content, ""
 
         except Exception as e:
@@ -97,12 +137,6 @@ class PDFProcessor:
             if indicator in text:
                 return "mexican_condusef"
 
-        # Check for other specific formats (future expansion)
-        if "AMERICAN EXPRESS" in text.upper():
-            return "amex_international"
-        elif "VISA" in text.upper() or "MASTERCARD" in text.upper():
-            return "international_card"
-
         return "unknown"
 
     def process_mexican_statement(self, text: str) -> Dict:
@@ -115,61 +149,87 @@ class PDFProcessor:
             self.logger.info(
                 f"Mexican template parsing successful with confidence {parser_result['confidence']:.2f}"
             )
-            
+
             # Transform the nested data structure to match what the upload endpoint expects
             result = {
                 "success": parser_result["success"],
                 "confidence": parser_result["confidence"],
                 "extraction_method": "mexican_template",
                 "metadata": {},
-                "transactions": []
+                "transactions": [],
             }
-            
+
             # Extract customer info
-            if "data" in parser_result and "customer_info" in parser_result["data"]:
+            if (
+                "data" in parser_result
+                and "customer_info" in parser_result["data"]
+            ):
                 customer_info = parser_result["data"]["customer_info"]
-                result["metadata"].update({
-                    "bank_name": customer_info.get("bank_name"),
-                    "customer_name": customer_info.get("customer_name"),
-                    "card_last_four": customer_info.get("card_number")[-4:] if customer_info.get("card_number") else None
-                })
-            
+                result["metadata"].update(
+                    {
+                        "bank_name": customer_info.get("bank_name"),
+                        "customer_name": customer_info.get("customer_name"),
+                        "card_last_four": customer_info.get("card_number")[-4:]
+                        if customer_info.get("card_number")
+                        else None,
+                    }
+                )
+
             # Extract payment info
-            if "data" in parser_result and "payment_info" in parser_result["data"]:
+            if (
+                "data" in parser_result
+                and "payment_info" in parser_result["data"]
+            ):
                 payment_info = parser_result["data"]["payment_info"]
-                result["metadata"].update({
-                    "period_start": payment_info.get("period_start"),
-                    "period_end": payment_info.get("period_end"),
-                    "cut_date": payment_info.get("cut_date"),
-                    "due_date": payment_info.get("due_date"),
-                    "pay_no_interest": payment_info.get("pay_no_interest"),
-                    "minimum_payment": payment_info.get("minimum_payment")
-                })
-            
+                result["metadata"].update(
+                    {
+                        "period_start": payment_info.get("period_start"),
+                        "period_end": payment_info.get("period_end"),
+                        "cut_date": payment_info.get("cut_date"),
+                        "due_date": payment_info.get("due_date"),
+                        "pay_no_interest": payment_info.get("pay_no_interest"),
+                        "minimum_payment": payment_info.get("minimum_payment"),
+                    }
+                )
+
             # Extract balance info
-            if "data" in parser_result and "balance_info" in parser_result["data"]:
+            if (
+                "data" in parser_result
+                and "balance_info" in parser_result["data"]
+            ):
                 balance_info = parser_result["data"]["balance_info"]
-                result["metadata"].update({
-                    "previous_balance": balance_info.get("previous_balance"),
-                    "total_charges": balance_info.get("total_charges"),
-                    "total_payments": balance_info.get("total_payments"),
-                    "credit_limit": balance_info.get("credit_limit"),
-                    "available_credit": balance_info.get("available_credit"),
-                    "total_balance": balance_info.get("total_balance")
-                })
-            
+                result["metadata"].update(
+                    {
+                        "previous_balance": balance_info.get(
+                            "previous_balance"
+                        ),
+                        "total_charges": balance_info.get("total_charges"),
+                        "total_payments": balance_info.get("total_payments"),
+                        "credit_limit": balance_info.get("credit_limit"),
+                        "available_credit": balance_info.get(
+                            "available_credit"
+                        ),
+                        "total_balance": balance_info.get("total_balance"),
+                    }
+                )
+
             # Extract transactions
-            if "data" in parser_result and "transactions" in parser_result["data"]:
+            if (
+                "data" in parser_result
+                and "transactions" in parser_result["data"]
+            ):
                 for tx in parser_result["data"]["transactions"]:
                     transaction = {
                         "date": tx.get("operation_date"),
                         "charge_date": tx.get("charge_date"),
                         "description": tx.get("description", ""),
                         "amount": tx.get("amount"),
-                        "type": "DEBIT" if tx.get("transaction_type") == "DEBIT" else "CREDIT",
+                        "type": "DEBIT"
+                        if tx.get("transaction_type") == "DEBIT"
+                        else "CREDIT",
                         "category": tx.get("category", "otros"),
                         "original_category": tx.get("category"),
-                        "confidence": parser_result["confidence"]
+                        "confidence": parser_result["confidence"],
                     }
                     result["transactions"].append(transaction)
         else:
@@ -190,7 +250,7 @@ class PDFProcessor:
             "confidence": 0.0,
             "extraction_method": "llm_fallback",
             "metadata": {},
-            "transactions": []
+            "transactions": [],
         }
 
     def process_statement(self, pdf_content: bytes) -> Dict:
@@ -209,15 +269,17 @@ class PDFProcessor:
                 "confidence": 0.0,
                 "extraction_method": ExtractionMethodEnum.TEXT_EXTRACTION_FAILED,
                 "error": "PDF content is empty",
-                "raw_text": ""
+                "raw_text": "",
             }
-            
-        self.logger.info(f"Starting statement processing for {len(pdf_content)} bytes")
+
+        self.logger.info(
+            f"Starting statement processing for {len(pdf_content)} bytes"
+        )
 
         try:
             # Step 1: Extract text from PDF
             success, text, error = self.extract_text_from_pdf(pdf_content)
-            
+
             if not success:
                 self.logger.error(f"Text extraction failed: {error}")
                 return {
@@ -225,48 +287,57 @@ class PDFProcessor:
                     "confidence": 0.0,
                     "extraction_method": ExtractionMethodEnum.TEXT_EXTRACTION_FAILED,
                     "error": error,
-                    "raw_text": text  # This will be empty string but we include it for consistency
+                    "raw_text": text,  # For consistency
                 }
-                
+
             self.logger.debug(f"Extracted text length: {len(text)} characters")
-            
+
             # Step 2: Detect statement type
             statement_type = self.detect_statement_type(text)
             self.logger.info(f"Detected statement type: {statement_type}")
-            
+
             # Step 3: Process based on statement type
             if statement_type == "mexican_condusef":
                 # Try Mexican template parsing
                 result = self.process_mexican_statement(text)
-                self.logger.info(f"Mexican parser result: {result['success']} with confidence {result['confidence']:.2f}")
-                
+                self.logger.info(
+                    f"Mexican parser result: {result['success']} with confidence {result['confidence']:.2f}"
+                )
+
                 # If Mexican parsing failed or has low confidence, try LLM fallback
                 if not result["success"] or result["confidence"] < 0.5:
-                    self.logger.info("Mexican parsing failed or has low confidence, trying LLM fallback")
+                    self.logger.info(
+                        "Mexican parsing failed or has low confidence, trying LLM fallback"
+                    )
                     result = self.process_llm_fallback(text)
                     # Add raw text to result
                     result["raw_text"] = text
                     return result
-                
+
                 # Add raw text to result
                 result["raw_text"] = text
                 return result
             else:
                 # Unknown statement type, use LLM fallback
-                self.logger.info(f"Unknown statement type: {statement_type}, using LLM fallback")
+                self.logger.info(
+                    f"Unknown statement type: {statement_type}, using LLM fallback"
+                )
                 result = self.process_llm_fallback(text)
                 # Add raw text to result
                 result["raw_text"] = text
                 return result
-                
+
         except Exception as e:
-            self.logger.error(f"Unexpected error processing statement: {str(e)}", exc_info=True)
+            self.logger.error(
+                f"Unexpected error processing statement: {str(e)}",
+                exc_info=True,
+            )
             return {
                 "success": False,
                 "confidence": 0.0,
                 "extraction_method": ExtractionMethodEnum.TEXT_EXTRACTION_FAILED,
                 "error": f"Unexpected error: {str(e)}",
-                "raw_text": ""
+                "raw_text": "",
             }
 
     def validate_pdf(self, pdf_content: bytes) -> bool:
