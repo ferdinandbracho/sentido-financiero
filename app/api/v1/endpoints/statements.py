@@ -138,20 +138,20 @@ async def upload_statement(
 
         # Process statement using template-first approach
         extraction_result = pdf_processor.process_statement(file_content)
-        
+
         # Log the extraction result (without sensitive data)
         result_log = {
-            'success': extraction_result.get('success'),
-            'confidence': extraction_result.get('confidence'),
-            'extraction_method': extraction_result.get('extraction_method'),
-            'error': extraction_result.get('error'),
-            'has_raw_text': bool(extraction_result.get('raw_text'))
+            "success": extraction_result.get("success"),
+            "confidence": extraction_result.get("confidence"),
+            "extraction_method": extraction_result.get("extraction_method"),
+            "error": extraction_result.get("error"),
+            "has_raw_text": bool(extraction_result.get("raw_text")),
         }
         logger.info(f"Statement processing result: {result_log}")
 
         # Ensure we have raw text
-        raw_text = extraction_result.get('raw_text', '')
-        if not raw_text and extraction_result.get('success', False):
+        raw_text = extraction_result.get("raw_text", "")
+        if not raw_text and extraction_result.get("success", False):
             logger.warning("No raw text in successful extraction result")
             raw_text = "[No text extracted]"
 
@@ -161,13 +161,13 @@ async def upload_statement(
             file_size=file_size,
             raw_text=raw_text,
             processing_status=(
-                ProcessingStatusEnum.COMPLETED 
+                ProcessingStatusEnum.COMPLETED
                 if extraction_result.get("success", False)
                 else ProcessingStatusEnum.FAILED
             ),
             extraction_method=(
-                ExtractionMethodEnum.MEXICAN_TEMPLATE 
-                if extraction_result.get("method") == "template" 
+                ExtractionMethodEnum.MEXICAN_TEMPLATE
+                if extraction_result.get("method") == "template"
                 else ExtractionMethodEnum.LLM_FALLBACK
             ),
             overall_confidence=extraction_result.get("confidence"),
@@ -199,11 +199,13 @@ async def upload_statement(
                         description=tx_data.get("description", ""),
                         amount=tx_data.get("amount"),
                         transaction_type=(
-                            TransactionTypeEnum.CARGO 
-                            if tx_data.get("type") == "DEBIT" 
+                            TransactionTypeEnum.CARGO
+                            if tx_data.get("type") == "DEBIT"
                             else TransactionTypeEnum.ABONO
                         ),
-                        category=tx_data.get("category", TransactionCategoryEnum.OTROS),
+                        category=tx_data.get(
+                            "category", TransactionCategoryEnum.OTROS
+                        ),
                         original_category=tx_data.get("original_category"),
                         categorization_confidence=tx_data.get("confidence"),
                     )
@@ -211,10 +213,12 @@ async def upload_statement(
 
         # Add processing log
         log = ProcessingLog(
-            level=LogLevelEnum.INFO if extraction_result["success"] else LogLevelEnum.ERROR,
+            level=LogLevelEnum.INFO
+            if extraction_result["success"]
+            else LogLevelEnum.ERROR,
             message=(
-                "Successfully processed statement" 
-                if extraction_result["success"] 
+                "Successfully processed statement"
+                if extraction_result["success"]
                 else "Failed to process statement"
             ),
             details={
@@ -309,23 +313,24 @@ async def list_statements(
             # Calculate total amount from transactions if available
             total_amount = None
             total_transactions = 0
-            if hasattr(statement, 'transactions') and statement.transactions:
+            if hasattr(statement, "transactions") and statement.transactions:
                 total_amount = sum(
-                    float(tx.amount) for tx in statement.transactions
+                    float(tx.amount)
+                    for tx in statement.transactions
                     if tx.amount is not None
                 )
                 total_transactions = len(statement.transactions)
-            
+
             # Format statement period if available
             statement_period = None
             if (
-                statement.statement_period_start and
-                statement.statement_period_end
+                statement.statement_period_start
+                and statement.statement_period_end
             ):
-                start = statement.statement_period_start.strftime('%Y-%m-%d')
-                end = statement.statement_period_end.strftime('%Y-%m-%d')
+                start = statement.statement_period_start.strftime("%Y-%m-%d")
+                end = statement.statement_period_end.strftime("%Y-%m-%d")
                 statement_period = f"{start} to {end}"
-            
+
             # Map transaction types from database to schema
             mapped_transactions = []
             for tx in statement.transactions or []:
@@ -337,10 +342,12 @@ async def list_statements(
                     "amount": tx.amount,
                     "category": tx.category,
                     # Map transaction type from database to schema
-                    "transaction_type": TransactionType.DEBIT if tx.transaction_type == TransactionTypeEnum.CARGO else TransactionType.CREDIT
+                    "transaction_type": TransactionType.DEBIT
+                    if tx.transaction_type == TransactionTypeEnum.CARGO
+                    else TransactionType.CREDIT,
                 }
                 mapped_transactions.append(tx_dict)
-                
+
             # Create response model
             response = StatementDetailResponse(
                 statement_id=statement.id,
@@ -351,18 +358,19 @@ async def list_statements(
                 statement_period=statement_period,
                 total_transactions=total_transactions,
                 total_amount=(
-                    Decimal(str(total_amount)) 
-                    if total_amount is not None else None
+                    Decimal(str(total_amount))
+                    if total_amount is not None
+                    else None
                 ),
                 extraction_method=(
-                    statement.extraction_method or 
-                    ExtractionMethod.MEXICAN_TEMPLATE
+                    statement.extraction_method
+                    or ExtractionMethod.MEXICAN_TEMPLATE
                 ),
                 confidence=statement.overall_confidence or 0.0,
-                transactions=mapped_transactions
+                transactions=mapped_transactions,
             )
             statement_responses.append(response)
-        
+
         # Convert statements to dictionaries
         statements_list = []
         for stmt in statements:
@@ -372,17 +380,19 @@ async def list_statements(
             )
             stmt_total_amount = (
                 sum(
-                    float(tx.amount) 
-                    for tx in (stmt.transactions or []) 
+                    float(tx.amount)
+                    for tx in (stmt.transactions or [])
                     if tx.amount is not None
-                ) if stmt.transactions else 0.0
+                )
+                if stmt.transactions
+                else 0.0
             )
 
             # Format statement period if available
             stmt_period = None
             if stmt.statement_period_start and stmt.statement_period_end:
-                start = stmt.statement_period_start.strftime('%Y-%m-%d')
-                end = stmt.statement_period_end.strftime('%Y-%m-%d')
+                start = stmt.statement_period_start.strftime("%Y-%m-%d")
+                end = stmt.statement_period_end.strftime("%Y-%m-%d")
                 stmt_period = f"{start} to {end}"
 
             # Map transactions to dictionaries
@@ -393,44 +403,42 @@ async def list_statements(
                     "charge_date": tx.charge_date,
                     "description": tx.description or "",
                     "amount": (
-                        float(tx.amount) 
-                        if tx.amount is not None 
-                        else 0.0
+                        float(tx.amount) if tx.amount is not None else 0.0
                     ),
                     "transaction_type": (
-                        TransactionType.DEBIT 
-                        if tx.transaction_type == TransactionTypeEnum.CARGO 
+                        TransactionType.DEBIT
+                        if tx.transaction_type == TransactionTypeEnum.CARGO
                         else TransactionType.CREDIT
                     ),
                     "category": tx.category or TransactionCategoryEnum.OTROS,
                     "original_category": tx.original_category,
-                    "categorization_confidence": tx.categorization_confidence
+                    "categorization_confidence": tx.categorization_confidence,
                 }
                 transactions_list.append(tx_dict)
 
             stmt_dict = {
-                'statement_id': stmt.id,
-                'filename': stmt.filename,
-                'upload_date': stmt.upload_date,
-                'bank_name': stmt.bank_name,
-                'customer_name': stmt.customer_name or "",
-                'statement_period': stmt_period,
-                'total_transactions': stmt_total_transactions,
-                'total_amount': stmt_total_amount,
-                'extraction_method': (
+                "statement_id": stmt.id,
+                "filename": stmt.filename,
+                "upload_date": stmt.upload_date,
+                "bank_name": stmt.bank_name,
+                "customer_name": stmt.customer_name or "",
+                "statement_period": stmt_period,
+                "total_transactions": stmt_total_transactions,
+                "total_amount": stmt_total_amount,
+                "extraction_method": (
                     stmt.extraction_method or "MEXICAN_TEMPLATE"
                 ),
-                'confidence': float(stmt.overall_confidence or 0.0),
-                'transactions': transactions_list
+                "confidence": float(stmt.overall_confidence or 0.0),
+                "transactions": transactions_list,
             }
             statements_list.append(stmt_dict)
-        
+
         # Create and return the response
         return StatementListResponse(
             statements=statements_list,
             total_count=total,
             page=page,
-            per_page=per_page
+            per_page=per_page,
         )
 
     except HTTPException:

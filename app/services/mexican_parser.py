@@ -10,31 +10,48 @@ Created: June 2025
 """
 
 import re
+import json
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
-from typing import Dict, List, Optional, Tuple
+from functools import lru_cache
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from app.config import settings
 
+from .llm_client import LLMClient
+
+# Initialize logger using settings
 logger = settings.get_logger(__name__)
+
+# Merchant categorization rules for Mexican transactions
+# Format: {"exact_match": {}, "pattern_match": {}, "contains_match": {}}
+
 
 # Mexican Statement Patterns - Based on CONDUSEF Regulation
 MEXICAN_PATTERNS = {
-    # Payment Section Patterns
+    # Payment Patterns
     "payment_section": r"TU PAGO REQUERIDO ESTE PERIODO",
     "period_start": r"Periodo:\s*(?:Del\s+)?(\d{1,2}-\w{3}-\d{4})",
-    "period_end": r"(?:Del\s+\d{1,2}-\w{3}-\d{4}\s+)?al\s+(\d{1,2}-\w{3}-\d{4})",
+    "period_end": (
+        r"(?:Del\s+\d{1,2}-\w{3}-\d{4}\s+)?"
+        r"al\s+(\d{1,2}-\w{3}-\d{4})"
+    ),
     "cut_date": r"Fecha de corte:\s*(\d{1,2}-\w{3}-\d{4})",
-    "due_date": r"Fecha límite de pago:\s*(.+?)(?:\n|$)",
-    "pay_no_interest": r"Pago para no generar intereses:\s*\$?([\d,]+\.?\d*)",
-    "minimum_payment": r"Pago mínimo:\s*\$?([\d,]+\.?\d*)",
+    "due_date": r"Fecha límite de pago:\s*\d*\s*([^\n]+?)(?:\n|$)",
+    "pay_no_interest": (
+        r"Pago para no generar intereses:\s*\d*\s*\$?([\d,]+\.?\d*)"
+    ),
+    "minimum_payment": (
+        r"Pago mínimo(?: \+ compras y cargo diferidos a meses)?:"
+        r"\s*\d*\s*\$?([\d,]+\.?\d*)"
+    ),
     # Balance Section Patterns
     "previous_balance": r"Adeudo del periodo anterior\s*[\=\+\-]?\s*\$?([\d,]+\.?\d*)",
     "total_charges": r"Cargos regulares.*?\+\s*\$?([\d,]+\.?\d*)",
     "total_payments": r"Pagos y abonos.*?\-\s*\$?([\d,]+\.?\d*)",
     "credit_limit": r"Límite de crédito:\s*\$?([\d,]+\.?\d*)",
     "available_credit": r"Crédito disponible:\s*\$?([\d,]+\.?\d*)",
-    "total_balance": r"Saldo deudor total:\s*\$?([\d,]+\.?\d*)",
+    "total_balance": r"Saldo deudor total:\s*\d*\s*\$?([\d,]+\.?\d*)",
     # Transaction Section Patterns
     "transaction_section": r"DESGLOSE DE MOVIMIENTOS",
     "transaction_table": r"CARGOS.*?ABONOS.*?REGULARES.*?\(NO A MESES\)",
@@ -65,63 +82,239 @@ MEXICAN_MONTH_MAP = {
 
 # Mexican Merchant Categorization Rules
 MEXICAN_MERCHANT_RULES = {
-    # Exact Match Rules (Highest Priority)
+    # Exact Match Rules (Highest Priority) - For specific, unambiguous merchant names
     "exact_match": {
+        # Supermarkets & Groceries
         "OXXO": "alimentacion",
         "WALMART": "alimentacion",
-        "PEMEX": "gasolineras",
-        "NETFLIX": "servicios",
-        "UBER": "transporte",
-        "LIVERPOOL": "ropa",
-        "PALACIO DE HIERRO": "ropa",
-        "FARMACIAS GUADALAJARA": "salud",
-        "FARMACIA DEL AHORRO": "salud",
-        "CINEPOLIS": "entretenimiento",
-        "STARBUCKS": "alimentacion",
-        "MCDONALDS": "alimentacion",
-        "SUBURBIA": "ropa",
-        "COPPEL": "ropa",
-        "ELEKTRA": "otros",
         "SORIANA": "alimentacion",
         "CHEDRAUI": "alimentacion",
         "HEB": "alimentacion",
+        "LA COMER": "alimentacion",
+        "SUPERAMA": "alimentacion",  # Now part of Walmart Express
+        "WALMART EXPRESS": "alimentacion",
+        "BODEGA AURRERA": "alimentacion",
+        "COSTCO": "alimentacion",  # Often mixed, but primarily groceries
+        "SAMS CLUB": "alimentacion",  # Similar to Costco
+        "FRESKO": "alimentacion",
+        "CITY MARKET": "alimentacion",
+        "ALSUPER": "alimentacion",
+        "CALIMAX": "alimentacion",
+        "LEY": "alimentacion",
+        "SMART & FINAL": "alimentacion",
+        # Convenience Stores
+        "7-ELEVEN": "alimentacion",  # Often snacks/drinks
+        "CIRCLE K": "alimentacion",
+        "EXTRA": "alimentacion",
+        "GO MART": "alimentacion",
+        # Department Stores & Retail
+        "LIVERPOOL": "ropa",  # Sells more than clothes, but a common category
+        "PALACIO DE HIERRO": "ropa",  # Similar to Liverpool
+        "SEARS": "otros",  # General merchandise
+        "SUBURBIA": "ropa",
+        "COPPEL": "otros",  # General, often with credit
+        "ELEKTRA": "otros",  # General, electronics, credit
+        "SANBORNS": "alimentacion",  # Restaurant and retail mix
+        # Fashion & Clothing
+        "ZARA": "ropa",
+        "BERSHKA": "ropa",
+        "PULL&BEAR": "ropa",
+        "STRADIVARIUS": "ropa",
+        "H&M": "ropa",
+        "OLD NAVY": "ropa",
+        "GAP": "ropa",
+        "C&A": "ropa",
+        "DOROTHY GAYNOR": "ropa",
+        "JULIO": "ropa",
+        "MASSIMO DUTTI": "ropa",
+        # Health & Pharmacy
+        "FARMACIAS GUADALAJARA": "salud",
+        "FARMACIA DEL AHORRO": "salud",
+        "FARMACIAS BENAVIDES": "salud",
+        "FARMACIAS SAN PABLO": "salud",
+        "FARMACIAS SIMILARES": "salud",
+        # Gas Stations
+        "PEMEX": "gasolineras",
+        "BP": "gasolineras",
+        "SHELL": "gasolineras",
+        "G500": "gasolineras",
+        "MOBIL": "gasolineras",
+        "REPSOL": "gasolineras",
+        "ORZAN": "gasolineras",
+        "PETRO SEVEN": "gasolineras",
+        # Restaurants & Fast Food
+        "STARBUCKS": "alimentacion",
+        "MCDONALDS": "alimentacion",
+        "BURGER KING": "alimentacion",
+        "KFC": "alimentacion",
+        "DOMINOS PIZZA": "alimentacion",
+        "PIZZA HUT": "alimentacion",
+        "SUBWAY": "alimentacion",
+        "VIPS": "alimentacion",
+        "TOKS": "alimentacion",
+        "EL GLOBO": "alimentacion",  # Bakery
+        "LA CASA DE TOÑO": "alimentacion",
+        "ITALIANNIS": "alimentacion",
+        "CHILIS": "alimentacion",
+        "P.F. CHANGS": "alimentacion",
+        # Transportation
+        "UBER": "transporte",
+        "DIDI": "transporte",
+        "CABIFY": "transporte",
+        "ADO": "transporte",  # Bus line
+        "ETN": "transporte",  # Bus line
+        "PRIMERA PLUS": "transporte",  # Bus line
+        "VIVA AEROBUS": "transporte",
+        "AEROMEXICO": "transporte",
+        "VOLARIS": "transporte",
+        "METRO CDMX": "transporte",  # If card recharges appear
+        "METROBUS CDMX": "transporte",
+        # Entertainment
+        "CINEPOLIS": "entretenimiento",
+        "CINEMEX": "entretenimiento",
+        "TICKETMASTER": "entretenimiento",
+        "OCESA": "entretenimiento",
+        "SIX FLAGS": "entretenimiento",
+        "KIDZANIA": "entretenimiento",
+        # Services (Online & Utilities)
+        "NETFLIX": "servicios",
+        "SPOTIFY": "servicios",
+        "AMAZON PRIME VIDEO": "servicios",
+        "HBO MAX": "servicios",  # or MAX
+        "MAX": "servicios",
+        "DISNEY PLUS": "servicios",
+        "APPLE.COM/BILL": "servicios",  # Apple services
+        "GOOGLE SERVICES": "servicios",
+        "CFE": "servicios",  # Electricity
+        "TELMEX": "servicios",  # Phone/Internet
+        "TOTALPLAY": "servicios",
+        "IZZI": "servicios",
+        "MEGACABLE": "servicios",
+        "SKY": "servicios",  # Satellite TV
+        "TELCEL": "servicios",  # Mobile phone
+        "AT&T": "servicios",  # Mobile phone
+        "MOVISTAR": "servicios",  # Mobile phone
+        "SACMEX": "servicios",  # Water in CDMX
+        "GAS NATURAL": "servicios",  # e.g., Naturgy, Fenosa
+        # Home & Electronics
+        "HOME DEPOT": "otros",  # Home improvement
+        "LOWES": "otros",
+        "RADIOSHACK": "otros",  # Electronics
+        "BEST BUY": "otros",  # Electronics
+        "STEREN": "otros",
+        # Education
+        "UDEMY": "educacion",
+        "COURSERA": "educacion",
+        "PLATZI": "educacion",
+        # Others
+        "MERCADO LIBRE": "otros",  # Marketplace
+        "AMAZON": "otros",  # Marketplace
+        "PAYPAL": "otros",  # Payment proc.
+        "CLIP": "otros",  # Payment proc.
+        "SR PAGO": "otros",  # Payment proc.
+        "CONEKTA": "otros",  # Payment processor
     },
-    # Pattern Match Rules (Medium Priority)
+    # Pattern Match Rules (Medium Priority) - For more general terms or variations
     "pattern_match": {
-        r"\b(REST|RESTAURANT|RESTAURANTE)\b": "alimentacion",
-        r"\b(GAS|GASOLINERA|PEMEX|SHELL|BP)\b": "gasolineras",
-        r"\b(FARM|FARMACIA)\b": "salud",
-        r"\b(DR|DRA|DOCTOR|DOCTORA)\s+\w+": "salud",
-        r"\b(HOSPITAL|CLINICA|MEDICAL)\b": "salud",
-        r"\b(UBER|TAXI|TRANSPORTE)\b": "transporte",
-        r"\b(CINE|CINEMA|TEATRO)\b": "entretenimiento",
-        r"\b(GYM|GIMNASIO|FITNESS)\b": "salud",
-        r"\b(HOTEL|MOTEL)\b": "otros",
-        r"\b(UNIVERSITY|UNIVERSIDAD|ESCUELA)\b": "educacion",
-        r"\b(SEGURO|INSURANCE)\b": "seguros",
-        r"\bTRANSFERENCIA\b": "transferencias",
-        r"\b(INTERES|INTEREST|COMISION)\b": "intereses_comisiones",
+        # Food & Restaurants
+        r"\b(REST|RESTAURANT|RESTAURANTE|COMIDA|ALIMENTO|COCINA|BISTRO|CAFE|CAFETERIA)\b": "alimentacion",
+        r"\b(SUPERMERCADO|SUPER MARKET|MINISUPER|ABARROTES|TIENDA DE CONVENIENCIA)\b": "alimentacion",
+        r"\b(PANADERIA|PASTELERIA|DULCERIA)\b": "alimentacion",
+        r"\b(CARNICERIA|PESCADERIA|VERDULERIA)\b": "alimentacion",
+        # Gas & Auto
+        r"\b(GAS|GASOLINERA|ESTACION DE SERVICIO|PEMEX|SHELL|BP|MOBIL|REPSOL)\b": "gasolineras",
+        r"\b(AUTOZONE|REFACCIONARIA|TALLER MECANICO|LLANTAS)\b": "transporte",  # Car maintenance
+        r"\b(ESTACIONAMIENTO|PENSION|PARQUIMETRO)\b": "transporte",
+        # Health
+        r"\b(FARM|FARMACIA|BOTICA)\b": "salud",
+        r"\b(DR|DRA|DOCTOR|DOCTORA|MEDICO|CONSULTORIO)\s+\w+": "salud",  # Matches "DR. PEREZ"
+        r"\b(HOSPITAL|CLINICA|SANATORIO|LABORATORIO|ANALISIS CLINICOS|SALUD)\b": "salud",
+        r"\b(DENTAL|DENTISTA|ODONTOLOGO)\b": "salud",
+        r"\b(OPTICA|OCULISTA)\b": "salud",
+        r"\b(VETERINARI[OA])\b": "salud",  # Pet health
+        # Transportation
+        r"\b(UBER|DIDI|CABIFY|TAXI|TRANSPORTE|PASAJES|PEAJE|CASETA)\b": "transporte",
+        r"\b(AEROLINEA|VUELO|AEROPUERTO|BOLETO DE AVION)\b": "transporte",
+        r"\b(AUTOBUS|CAMION|TERMINAL DE AUTOBUSES)\b": "transporte",
+        # Entertainment
+        r"\b(CINE|CINEMA|TEATRO|CONCIERTO|EVENTO|BOLETO|ENTRETENIMIENTO)\b": "entretenimiento",
+        r"\b(BAR|CANTINA|CLUB NOCTURNO|ANTRO)\b": "entretenimiento",
+        r"\b(VIDEOJUEGOS|GAMING|STEAM|XBOX|PLAYSTATION)\b": "entretenimiento",
+        r"\b(MUSEO|GALERIA)\b": "entretenimiento",
+        # Shopping & Retail
+        r"\b(TIENDA|BOUTIQUE|ZAPATERIA|JOYERIA|REGALOS|PAPELERIA)\b": "ropa",  # General shopping, default to ropa/otros
+        r"\b(LIBRERIA)\b": "educacion",  # Or "otros"
+        r"\b(JUGUETERIA)\b": "otros",
+        # Services & Utilities
+        r"\b(LUZ|ELECTRICIDAD|CFE)\b": "servicios",
+        r"\b(AGUA|SAPAL|SACM)\b": "servicios",
+        r"\b(TELEFONO|INTERNET|CABLE|WIFI)\b": "servicios",
+        r"\b(GASOLINERA)\b": "gasolineras",  # Duplicate for safety, covered by GAS too
+        r"\b(GOBIERNO|IMPUESTO|TENENCIA|PREDIAL|SAT|TESORERIA)\b": "servicios",  # Government payments
+        # Education
+        r"\b(GYM|GIMNASIO|FITNESS|DEPORTE|SPORT)\b": "salud",  # Or "entretenimiento"
+        r"\b(HOTEL|MOTEL|HOSTAL|ALOJAMIENTO|AIRBNB)\b": "otros",  # Travel accommodation
+        r"\b(UNIVERSIDAD|COLEGIO|ESCUELA|INSTITUTO|CAPACITACION|CURSO)\b": "educacion",
+        r"\b(COLEGIATURA|INSCRIPCION)\b": "educacion",
+        # Financial
+        r"\b(SEGURO|ASEGURADORA|POLIZA|GNP|AXA|METLIFE|QUALITAS)\b": "seguros",
+        r"\b(TRANSFERENCIA|SPEI|DEPOSITO|ENVIO)\b": "transferencias",
+        r"\b(INTERES|INTERESES|COMISION|CARGO|IVA)\b": "intereses_comisiones",
+        r"\b(RETIRO|DISPOSICION DE EFECTIVO|CAJERO|ATM)\b": "transferencias",  # Cash withdrawal
+        r"\b(AFORE|PENSION)\b": "otros",  # Savings/Retirement
+        # Home
+        r"\b(MUEBLERIA|DECORACION|CASA)\b": "otros",
+        r"\b(LAVANDERIA|TINTORERIA)\b": "servicios",
+        r"\b(FERRETERIA|TLAPALERIA)\b": "otros",
     },
-    # Contains Match Rules (Lower Priority)
+    # Contains Match Rules (Lower Priority) - For keywords that might appear in broader descriptions
     "contains_match": {
+        # Food keywords
         "TACO": "alimentacion",
         "PIZZA": "alimentacion",
-        "COFFEE": "alimentacion",
-        "CAFE": "alimentacion",
-        "BAR": "entretenimiento",
-        "CANTINA": "entretenimiento",
+        "SUSHI": "alimentacion",
+        "HAMBURGUESA": "alimentacion",
+        "CAFE": "alimentacion",  # Covered by pattern, but good for "contains" too
+        "HELADO": "alimentacion",
+        "POSTRE": "alimentacion",
+        "VINO": "alimentacion",  # Could be "entretenimiento" if from a bar
+        "CERVEZA": "alimentacion",  # Same as above
+        # General Retail/Service keywords
+        "MODA": "ropa",
+        "LIBRO": "educacion",
+        "FLORES": "otros",
+        "VIAJE": "transporte",
+        "CONSULTA": "salud",
+        "SERVICIO": "servicios",  # Very generic, use with caution
+        "COMPRA EN LINEA": "otros",  # Generic online purchase
+        "ONLINE": "otros",
+        "DIGITAL": "servicios",
+        "APP": "servicios",
+        "SUSCRIPCION": "servicios",
     },
 }
 
 
 class MexicanStatementParser:
-    """
-    Template-based parser for Mexican credit card statements following
-    CONDUSEF government regulation format.
+    """Parser for Mexican bank statements.
+
+    This parser handles the specific format of Mexican bank statements,
+    including transaction details, dates, and amounts in MXN.
+
+    Attributes:
+        logger: Logger instance for the parser
+        llm_cache: Cache for LLM categorization results
+        llm_processed: Set of already processed descriptions
     """
 
     def __init__(self):
+        """Initialize the Mexican statement parser with a logger and caches."""
         self.logger = logger
+        self.llm_cache: Dict[str, str] = {}
+        self.llm_processed: Set[str] = set()
+        self.llm_client = LLMClient(
+            api_key=settings.OPENAI_API_KEY, model_name=settings.OPENAI_MODEL
+        )
 
     def parse_mexican_date(self, date_str: str) -> Optional[datetime]:
         """Convert Mexican date format (DD-MMM-YYYY) to datetime object."""
@@ -246,7 +439,9 @@ class MexicanStatementParser:
         # Extract due date (text format)
         due_date_match = re.search(MEXICAN_PATTERNS["due_date"], text)
         if due_date_match:
-            payment_info["due_date"] = due_date_match.group(1).strip()
+            payment_info["due_date"] = self.parse_mexican_date(
+                due_date_match.group(1)
+            )
             found_fields += 1
 
         # Extract payment amounts
@@ -376,33 +571,182 @@ class MexicanStatementParser:
 
         return transactions, confidence
 
-    def categorize_mexican_transaction(self, description: str) -> str:
-        """Categorize transaction using Mexican merchant rules."""
-        description_upper = description.upper()
+    def _categorize_with_llm(self, description: str) -> str:
+        """Categorize a transaction description using the LLMClient (Langchain).
 
-        # Tier 1: Exact matches
+        Args:
+            description: The transaction description to categorize.
+
+        Returns:
+            str: The category name or 'otros' if categorization fails.
+        """
+        if not self.llm_client.is_available():
+            self.logger.debug(
+                "LLMClient not available, LLM categorization skipped for: '%s'",
+                description,
+            )
+            return "otros"
+
+        cache_key = description.strip().upper()
+
+        # Check cache first
+        if cache_key in self.llm_cache:
+            return self.llm_cache[cache_key]
+
+        # Avoid re-processing failed LLM calls
+        if cache_key in self.llm_processed:
+            self.logger.debug(
+                "Desc '%s' already processed by LLM (failed?), using 'otros'",
+                description,
+            )
+            return "otros"
+
+        try:
+            valid_categories = list(
+                set(MEXICAN_MERCHANT_RULES["exact_match"].values())
+            )
+
+            from langchain_core.prompts import ChatPromptTemplate
+
+            prompt = ChatPromptTemplate.from_messages(
+                [
+                    (
+                        "system",
+                        "Categorize transactions. Use one from: {categories}. "
+                        "Else: 'otros'.",
+                    ),
+                    ("user", "Categorize this transaction: {description}"),
+                ]
+            )
+
+            category_list_str = ", ".join(sorted(valid_categories))
+            messages = prompt.format_messages(
+                categories=category_list_str, description=description
+            )
+            response_text = self.llm_client.invoke(messages)
+            category = response_text.strip().lower()
+
+            # Cache the result whether successful or 'otros' from LLMClient
+            self.llm_cache[cache_key] = category
+            self.llm_processed.add(cache_key)  # Mark as processed
+
+            if category != "otros":
+                self.logger.debug(
+                    "LLM (Langchain) categorized '%s' as '%s'",
+                    description,
+                    category,
+                )
+            else:
+                self.logger.debug(
+                    "LLM (Langchain) could not categorize '%s', returned 'otros'",
+                    description,
+                )
+            return category
+
+        except (
+            Exception
+        ) as e:  # Should ideally be caught within LLMClient, but as a safeguard
+            self.logger.error(
+                "Unexpected error during LLM categorization for '%s': %s",
+                description,
+                e,
+                exc_info=True,
+            )
+            self.llm_processed.add(cache_key)
+            return "otros"
+
+    @lru_cache(maxsize=1000)
+    def categorize_mexican_transaction(self, description: str) -> Optional[str]:
+        """Categorize transaction using a multi-tier approach with LLM
+        fallback.
+
+        Tiers:
+        1. Exact merchant name matches (fastest)
+        2. Regex pattern matches (fast)
+        3. Contains keyword matches (slower)
+        # 4. LLM-based categorization (slowest, if enabled & no match)
+        """
+        if not description or not description.strip():
+            return None
+
+        description_upper = description.upper()
+        # Tier 1: Exact matches (fastest)
         for merchant, category in MEXICAN_MERCHANT_RULES["exact_match"].items():
             if merchant in description_upper:
                 return category
 
-        # Tier 2: Pattern matches
+        # Tier 2: Pattern matches (fast)
         for pattern, category in MEXICAN_MERCHANT_RULES[
             "pattern_match"
         ].items():
             if re.search(pattern, description_upper):
                 return category
 
-        # Tier 3: Contains matches
+        # Tier 3: Contains matches (slower)
         for keyword, category in MEXICAN_MERCHANT_RULES[
             "contains_match"
         ].items():
             if keyword in description_upper:
                 return category
 
-        # Default category
-        return "otros"
+        # No rule matched
+        return None
 
-    def validate_extraction(self, extracted_data: Dict) -> Dict[str, any]:
+    def _categorize_batch_with_llm(self, descriptions: List[str]) -> Dict[str, str]:
+        """Categorize a list of descriptions in a single LLM call.
+
+        The method sends all unique descriptions to the LLM and expects a JSON
+        object as response mapping each description to a category.
+        """
+        if not self.llm_client.is_available() or not descriptions:
+            return {}
+
+        # Build list of valid categories from rule set.
+        valid_categories: List[str] = list(
+            {cat for cat in MEXICAN_MERCHANT_RULES["exact_match"].values()}
+        )
+        category_list = ", ".join(sorted(valid_categories))
+
+        # Prepare prompts
+        system_content = (
+            "You are a helpful financial assistant. Categorize each bank "
+            "transaction description using ONE of the following categories: "
+            f"{category_list}. If none apply, reply with 'otros'. "
+            "Return ONLY a single valid JSON object mapping each description "
+            "to its category. Do not wrap the JSON in markdown or add any keys "
+            "other than the descriptions."
+        )
+        user_content = "Descriptions: " + json.dumps(descriptions, ensure_ascii=False)
+
+        try:
+            from langchain_core.prompts import ChatPromptTemplate
+
+            prompt = ChatPromptTemplate.from_messages(
+                [("system", system_content), ("user", user_content)]
+            )
+            messages = prompt.format_messages()
+            response = self.llm_client.invoke(messages)
+
+            # Extract JSON from response
+            json_match = re.search(r"\{.*\}", response, re.DOTALL)
+            if not json_match:
+                self.logger.error("LLM batch response missing JSON: %s", response)
+                return {}
+
+            parsed = json.loads(json_match.group(0))
+            result: Dict[str, str] = {}
+            for desc, cat in parsed.items():
+                cat_lower = cat.lower() if isinstance(cat, str) else "otros"
+                if cat_lower not in valid_categories:
+                    cat_lower = "otros"
+                result[desc] = cat_lower
+
+            return result
+        except Exception as exc:
+            self.logger.error("Error in batch LLM categorization: %s", exc, exc_info=True)
+            return {}
+
+    def validate_extraction(self, extracted_data: Dict) -> Dict[str, Any]:
         """Validate extracted data for consistency and completeness."""
         validation_result = {
             "is_valid": True,
@@ -500,11 +844,25 @@ class MexicanStatementParser:
             extracted_data["transactions"] = transactions
             extracted_data["transactions_confidence"] = transactions_confidence
 
-            # Categorize transactions
+            # Categorize transactions using rule-based tiers first
+            uncategorized: Set[str] = set()
             for transaction in extracted_data["transactions"]:
-                transaction["category"] = self.categorize_mexican_transaction(
-                    transaction["description"]
-                )
+                cat = self.categorize_mexican_transaction(transaction["description"])
+                if cat:
+                    transaction["category"] = cat
+                else:
+                    # Mark for LLM batch processing
+                    transaction["category"] = "otros"  # provisional
+                    uncategorized.add(transaction["description"])
+
+            # Batch-categorize uncategorized descriptions with the LLM
+            if uncategorized:
+                llm_results = self._categorize_batch_with_llm(list(uncategorized))
+                if llm_results:
+                    for transaction in extracted_data["transactions"]:
+                        desc = transaction["description"]
+                        if desc in llm_results:
+                            transaction["category"] = llm_results[desc]
 
             # Validate extraction
             validation_result = self.validate_extraction(extracted_data)

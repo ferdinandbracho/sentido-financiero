@@ -23,7 +23,9 @@ dependencies = [
     "langchain-openai>=0.3.21",
     "openai>=1.55.0",
     "langchain-core>=0.3.37",
-    "tiktoken>=0.8.0",  # For OpenAI token counting
+    "tiktoken>=0.8.0", # For OpenAI token counting
+    "pytesseract>=0.3.13",
+    "pillow>=11.2.1",
 ]
 
 [project.optional-dependencies]

@@ -140,7 +140,7 @@ class StatementParsingResult(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0)
     extraction_method: ExtractionMethod
     error: Optional[str] = None
-    
+
     class Config:
         from_attributes = True
         use_enum_values = True
@@ -156,7 +156,7 @@ class StatementUploadResponse(BaseModel):
     file_size: int
     processing_status: str
     extraction_result: Optional[StatementParsingResult] = None
-    
+
     class Config:
         from_attributes = True
 
@@ -168,7 +168,7 @@ class StatementListResponse(BaseModel):
     total_count: int
     page: int
     per_page: int
-    
+
     class Config:
         from_attributes = True
 
@@ -187,7 +187,7 @@ class StatementDetailResponse(BaseModel):
     extraction_method: ExtractionMethod
     confidence: float
     transactions: List[Transaction]
-    
+
     class Config:
         from_attributes = True
         use_enum_values = True
@@ -198,7 +198,7 @@ class AnalysisRequest(BaseModel):
 
     statement_id: int
     analysis_type: str = "summary"
-    
+
     class Config:
         from_attributes = True  # summary, spending_patterns, categories
 
@@ -212,7 +212,7 @@ class SpendingAnalysis(BaseModel):
     top_categories: List[dict]
     monthly_trend: List[dict]
     merchant_analysis: List[dict]
-    
+
     class Config:
         from_attributes = True
 
@@ -226,7 +226,7 @@ class AnalysisResponse(BaseModel):
     spending_analysis: Optional[SpendingAnalysis] = None
     insights: List[str] = []
     confidence: float = Field(ge=0.0, le=1.0)
-    
+
     class Config:
         from_attributes = True
 
@@ -238,7 +238,7 @@ class ErrorResponse(BaseModel):
     error: str
     detail: Optional[str] = None
     timestamp: datetime = Field(default_factory=datetime.now)
-    
+
     class Config:
         from_attributes = True
 
@@ -249,6 +249,6 @@ class ValidationError(BaseModel):
     field: str
     message: str
     invalid_value: Optional[str] = None
-    
+
     class Config:
         from_attributes = True
