@@ -19,12 +19,6 @@ export function Layout({ children }) {
             </div>
             <nav className="hidden md:flex items-center space-x-8">
               <Link 
-                to="/" 
-                className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
-              >
-                Inicio
-              </Link>
-              <Link 
                 to="/upload" 
                 className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
               >

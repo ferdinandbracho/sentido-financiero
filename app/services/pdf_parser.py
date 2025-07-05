@@ -18,6 +18,7 @@ from app.config import settings
 from app.models.statement import ExtractionMethodEnum
 from app.services.mexican_parser import mexican_parser
 from app.services.table_extractor import table_extractor
+from app.services.ocr_table_parser import ocr_table_parser
 
 logger = settings.get_logger(__name__)
 
@@ -75,7 +76,6 @@ class PDFProcessor:
                             else:
                                 # Fallback: Enhanced table extraction + OCR
                                 try:
-                                    print(f"🔍 DEBUG: No text layer found on page {page_num + 1}, trying enhanced table extraction")
                                     self.logger.debug(
                                         "No text layer found, trying enhanced table extraction"
                                     )
@@ -85,28 +85,23 @@ class PDFProcessor:
                                         pdf_content, page_num
                                     )
                                     
-                                    print(f"🔍 DEBUG: Table extraction returned {len(table_results)} results")
                                     
                                     table_text = ""
                                     if table_results:
                                         best_result = max(table_results, key=lambda x: x.confidence)
-                                        print(f"🔍 DEBUG: Best result - Method: {best_result.method.value}, Success: {best_result.success}, Confidence: {best_result.confidence:.2f}")
                                         
                                         if best_result.success and best_result.tables:
-                                            print(f"🔍 DEBUG: Found {len(best_result.tables)} tables")
                                             self.logger.debug(
                                                 f"Table extraction successful with {best_result.method.value}, confidence: {best_result.confidence:.2f}"
                                             )
                                             # Convert tables to text format
                                             for i, table in enumerate(best_result.tables):
-                                                print(f"🔍 DEBUG: Table {i+1} dimensions: {len(table)} rows x {len(table.columns)} columns")
                                                 table_text += f"\n--- Table {i+1} ---\n"
                                                 table_text += table.to_string(index=False)
                                                 table_text += "\n"
                                     
                                     # Fallback to basic OCR if no tables found
                                     if not table_text:
-                                        print(f"🔍 DEBUG: No tables found, falling back to basic OCR")
                                         self.logger.debug(
                                             "No tables found, falling back to basic OCR"
                                         )
@@ -115,7 +110,6 @@ class PDFProcessor:
                                             pil_image, lang="spa+eng"
                                         )
                                         if ocr_text and ocr_text.strip():
-                                            print(f"🔍 DEBUG: OCR extracted {len(ocr_text)} characters")
                                             table_text = ocr_text
                                     
                                     if table_text and table_text.strip():
@@ -162,7 +156,6 @@ class PDFProcessor:
 
     def detect_statement_type(self, text: str) -> str:
         """Detect the type of statement to determine parsing strategy."""
-        print(f"🔍 DEBUG: Detecting statement type from {len(text)} characters of text")
         
         # Check for Mexican CONDUSEF format indicators based on official structure guide
         # These are the mandated sections that MUST appear in all Mexican credit card statements
@@ -214,47 +207,35 @@ class PDFProcessor:
         
         text_upper = text.upper()
         
-        print(f"🔍 DEBUG: Checking for CONDUSEF primary indicators...")
         for indicator in primary_condusef_indicators:
             if indicator in text_upper:
                 primary_score += 1
-                print(f"🔍 DEBUG: Found PRIMARY CONDUSEF indicator: '{indicator}'")
         
-        print(f"🔍 DEBUG: Checking for secondary indicators...")
         for indicator in secondary_indicators:
             if indicator in text_upper:
                 secondary_score += 1
-                print(f"🔍 DEBUG: Found secondary indicator: '{indicator}'")
         
-        print(f"🔍 DEBUG: Checking for transaction table headers...")
         for indicator in transaction_table_headers:
             if indicator in text_upper:
                 transaction_score += 1
-                print(f"🔍 DEBUG: Found transaction table header: '{indicator}'")
         
-        print(f"🔍 DEBUG: Checking for structural patterns...")
         import re
         for pattern in structural_patterns:
             if re.search(pattern, text_upper):
                 structural_score += 1
-                print(f"🔍 DEBUG: Found structural pattern: '{pattern}'")
         
         # Scoring logic for CONDUSEF detection
-        print(f"🔍 DEBUG: CONDUSEF Scoring - Primary: {primary_score}, Secondary: {secondary_score}, Transaction: {transaction_score}, Structural: {structural_score}")
         
         # High confidence: Has primary CONDUSEF indicators
         if primary_score >= 1:
-            print(f"🔍 DEBUG: HIGH CONFIDENCE: Mexican CONDUSEF statement (primary indicators found)")
             return "mexican_condusef"
         
         # Medium confidence: Multiple secondary indicators + transaction tables
         if secondary_score >= 2 and transaction_score >= 1:
-            print(f"🔍 DEBUG: MEDIUM CONFIDENCE: Mexican CONDUSEF statement (secondary + transaction indicators)")
             return "mexican_condusef"
         
         # Low confidence: Strong secondary indicators + structural patterns
         if secondary_score >= 3 and structural_score >= 2:
-            print(f"🔍 DEBUG: LOW CONFIDENCE: Mexican CONDUSEF statement (secondary + structural patterns)")
             return "mexican_condusef"
         
         # Special case: Contains Mexican bank name + basic credit card terms
@@ -263,30 +244,21 @@ class PDFProcessor:
         has_credit_terms = any(term in text_upper for term in ["TARJETA", "CREDITO", "CRÉDITO", "ESTADO DE CUENTA"])
         
         if has_mexican_bank and has_credit_terms:
-            print(f"🔍 DEBUG: BASIC CONFIDENCE: Mexican statement (bank + credit card terms)")
             return "mexican_condusef"
 
         # Show first 500 chars to help debug
-        print(f"🔍 DEBUG: No CONDUSEF patterns found. First 500 characters:\n{text[:500]}...")
         
         return "unknown"
 
     def process_mexican_statement(self, text: str) -> Dict:
         """Process statement using Mexican template parser."""
-        print(f"🔍 DEBUG: Processing statement with Mexican template parser")
-        print(f"🔍 DEBUG: Input text length: {len(text)} characters")
-        print(f"🔍 DEBUG: First 300 chars of input text:\n{text[:300]}...")
         
         self.logger.info("Processing statement with Mexican template parser")
 
         parser_result = mexican_parser.parse_statement(text)
         
-        print(f"🔍 DEBUG: Mexican parser result - Success: {parser_result['success']}, Confidence: {parser_result.get('confidence', 0):.2f}")
-        if not parser_result["success"]:
-            print(f"🔍 DEBUG: Mexican parser error: {parser_result.get('error', 'No error message')}")
 
         if parser_result["success"]:
-            print(f"🔍 DEBUG: Mexican parser found {len(parser_result.get('data', {}).get('transactions', []))} transactions")
             self.logger.info(
                 f"Mexican template parsing successful with confidence {parser_result['confidence']:.2f}"
             )
@@ -394,11 +366,12 @@ class PDFProcessor:
             "transactions": [],
         }
 
-    def process_statement(self, pdf_content: bytes) -> Dict:
+    def process_statement(self, pdf_content: bytes, filename: str = None) -> Dict:
         """Process a statement PDF and extract structured data.
 
         Args:
             pdf_content: Raw PDF bytes
+            filename: Original filename for fallback period extraction
 
         Returns:
             Dict with parsed statement data and metadata
@@ -447,8 +420,6 @@ class PDFProcessor:
 
                 # If Mexican parsing failed or has low confidence, try enhanced table extraction
                 if not result["success"] or result["confidence"] < 0.5:
-                    print(f"🔍 DEBUG: Mexican parsing failed/low confidence (success: {result['success']}, confidence: {result['confidence']:.2f})")
-                    print(f"🔍 DEBUG: Trying enhanced table extraction")
                     self.logger.info(
                         "Mexican parsing failed or has low confidence, trying enhanced table extraction"
                     )
@@ -456,10 +427,7 @@ class PDFProcessor:
                     # Try direct table extraction
                     table_result = self.extract_transaction_tables(pdf_content)
                     
-                    print(f"🔍 DEBUG: Table extraction result - Success: {table_result['success']}")
                     if table_result["success"]:
-                        print(f"🔍 DEBUG: Enhanced text length: {len(table_result['extracted_text'])} characters")
-                        print(f"🔍 DEBUG: First 200 chars of enhanced text: {table_result['extracted_text'][:200]}...")
                         
                         self.logger.info(
                             f"Table extraction successful, re-trying Mexican parser with enhanced text"
@@ -467,16 +435,22 @@ class PDFProcessor:
                         # Re-try Mexican parser with enhanced text
                         enhanced_result = self.process_mexican_statement(table_result["extracted_text"])
                         
-                        print(f"🔍 DEBUG: Enhanced Mexican parser result - Success: {enhanced_result['success']}, Confidence: {enhanced_result.get('confidence', 0):.2f}")
                         
                         if enhanced_result["success"]:
-                            print(f"🔍 DEBUG: Enhanced parsing successful! Found {len(enhanced_result.get('transactions', []))} transactions")
                             self.logger.info(
                                 f"Enhanced Mexican parser successful with confidence {enhanced_result['confidence']:.2f}"
                             )
                             enhanced_result["raw_text"] = text
-                            enhanced_result["extraction_method"] = "enhanced_table_extraction"
+                            enhanced_result["extraction_method"] = "mexican_template"
                             return enhanced_result
+                        else:
+                            # If Mexican parser still fails, try OCR table parser
+                            ocr_result = self._process_with_ocr_parser(table_result["tables"], filename)
+                            
+                            if ocr_result["success"]:
+                                ocr_result["raw_text"] = text
+                                ocr_result["extraction_method"] = "mexican_template"
+                                return ocr_result
                     
                     # If table extraction also failed, try LLM fallback
                     self.logger.info(
@@ -492,7 +466,6 @@ class PDFProcessor:
                 return result
             else:
                 # Unknown statement type, try enhanced table extraction first, then LLM fallback
-                print(f"🔍 DEBUG: Unknown statement type: {statement_type}, trying enhanced table extraction first")
                 self.logger.info(
                     f"Unknown statement type: {statement_type}, trying enhanced table extraction before LLM fallback"
                 )
@@ -501,17 +474,23 @@ class PDFProcessor:
                 table_result = self.extract_transaction_tables(pdf_content)
                 
                 if table_result["success"]:
-                    print(f"🔍 DEBUG: Table extraction successful for unknown type, trying Mexican parser")
                     # Try Mexican parser on enhanced text
                     enhanced_result = self.process_mexican_statement(table_result["extracted_text"])
                     
                     if enhanced_result["success"]:
-                        print(f"🔍 DEBUG: Mexican parser worked on unknown statement! Found {len(enhanced_result.get('transactions', []))} transactions")
                         enhanced_result["raw_text"] = text
-                        enhanced_result["extraction_method"] = "enhanced_table_extraction_unknown"
+                        enhanced_result["extraction_method"] = "mexican_template"
                         return enhanced_result
                     else:
-                        print(f"🔍 DEBUG: Mexican parser failed on enhanced text, proceeding to LLM fallback")
+                        # Try OCR table parser
+                        ocr_result = self._process_with_ocr_parser(table_result["tables"], filename)
+                        
+                        if ocr_result["success"]:
+                            ocr_result["raw_text"] = text
+                            ocr_result["extraction_method"] = "mexican_template"
+                            return ocr_result
+                        else:
+                            pass
                 
                 # If table extraction failed or Mexican parser didn't work, use LLM fallback
                 result = self.process_llm_fallback(text)
@@ -592,16 +571,13 @@ class PDFProcessor:
         that may not have proper text layers.
         """
         try:
-            print(f"🔍 DEBUG: Starting direct table extraction for transactions")
             self.logger.info("Starting direct table extraction for transactions")
             
             # Use table extractor to find transaction tables
             transaction_tables = table_extractor.find_transaction_tables(pdf_content)
             
-            print(f"🔍 DEBUG: Found {len(transaction_tables)} transaction tables")
             
             if not transaction_tables:
-                print(f"🔍 DEBUG: No transaction tables found")
                 self.logger.warning("No transaction tables found")
                 return {
                     "success": False,
@@ -613,8 +589,6 @@ class PDFProcessor:
             # Convert tables to text format for Mexican parser
             combined_text = ""
             for i, table in enumerate(transaction_tables):
-                print(f"🔍 DEBUG: Processing table {i+1} with {len(table)} rows x {len(table.columns)} columns")
-                print(f"🔍 DEBUG: Table {i+1} first 3 rows:\n{table.head(3).to_string(index=False)}")
                 self.logger.debug(f"Processing table {i+1} with {len(table)} rows")
                 
                 # Add section header for Mexican parser recognition
@@ -622,7 +596,6 @@ class PDFProcessor:
                 combined_text += table.to_string(index=False)
                 combined_text += "\n"
             
-            print(f"🔍 DEBUG: Combined text length: {len(combined_text)} characters")
             self.logger.info(f"Successfully extracted {len(transaction_tables)} transaction tables")
             
             return {
@@ -639,6 +612,48 @@ class PDFProcessor:
                 "error": str(e),
                 "tables": [],
                 "extraction_method": "table_extraction_failed"
+            }
+    
+    def _process_with_ocr_parser(self, tables: list, filename: str = None) -> Dict:
+        """
+        Process extracted tables using the OCR table parser.
+        
+        Args:
+            tables: List of pandas DataFrames from table extraction
+            
+        Returns:
+            Dict with parsed statement data
+        """
+        try:
+            
+            if not tables:
+                return {
+                    "success": False,
+                    "error": "No tables provided for OCR parsing",
+                    "confidence": 0.0,
+                    "extraction_method": "ocr_table_parser",
+                    "metadata": {},
+                    "transactions": [],
+                }
+            
+            # Parse tables using OCR parser
+            parsed_statement = ocr_table_parser.parse_tables(tables, filename)
+            
+            # Convert to Mexican parser format
+            result = ocr_table_parser.to_mexican_parser_format(parsed_statement)
+            
+            
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"OCR table parser failed: {e}", exc_info=True)
+            return {
+                "success": False,
+                "error": f"OCR parsing failed: {str(e)}",
+                "confidence": 0.0,
+                "extraction_method": "ocr_table_parser",
+                "metadata": {},
+                "transactions": [],
             }
 
 

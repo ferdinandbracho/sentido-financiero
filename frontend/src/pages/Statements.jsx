@@ -360,7 +360,7 @@ export function Statements() {
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-purple-600">
-                  {formatCurrency(filteredStatements.reduce((sum, s) => sum + (s.total_debits || 0), 0))}
+                  {formatCurrency(filteredStatements.reduce((sum, s) => sum + (s.total_amount || 0), 0))}
                 </p>
                 <p className="text-sm text-gray-500">Monto total</p>
               </div>
@@ -464,8 +464,6 @@ function StatementItem({ statement, onDelete, onProcess, isDeleting, isProcessin
             <div className="mt-1 flex items-center space-x-4 text-sm text-gray-500">
               <span>{statement.bank_name || 'Banco no identificado'}</span>
               <span>•</span>
-              <span>{formatFileSize(statement.file_size || 0)}</span>
-              <span>•</span>
               <span>Subido {formatDate(statement.upload_date, 'relative')}</span>
             </div>
           </div>
@@ -478,7 +476,7 @@ function StatementItem({ statement, onDelete, onProcess, isDeleting, isProcessin
               {statement.total_transactions || 0} transacciones
             </p>
             <p className="text-sm text-gray-500">
-              {formatCurrency(statement.total_debits || 0)}
+              {formatCurrency(statement.total_amount || 0)}
             </p>
           </div>
 
