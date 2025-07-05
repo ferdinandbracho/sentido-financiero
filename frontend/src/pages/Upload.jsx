@@ -66,19 +66,31 @@ export function Upload() {
 
         // Upload file
         const result = await uploadMutation.mutateAsync(fileItem.file)
+        console.log('Upload result:', result)
         
-        // Update status to success with metadata
-        setFiles(prev => prev.map(f => 
-          f.id === fileItem.id 
-            ? { 
-                ...f, 
-                status: 'success', 
-                progress: 100, 
-                statementId: result.statement_id,
-                metadata: result.metadata
-              }
-            : f
-        ))
+        if (result && (result.statement_id || result.id)) {
+          const statementId = result.statement_id || result.id
+          
+          // Update status to success with metadata
+          setFiles(prev => prev.map(f => 
+            f.id === fileItem.id 
+              ? { 
+                  ...f, 
+                  status: 'success', 
+                  progress: 100, 
+                  statementId: statementId,
+                  metadata: result
+                }
+              : f
+          ))
+          
+          // Navigate to the statement detail page
+          if (navigate && statementId) {
+            navigate(`/statements/${statementId}`)
+          }
+        } else {
+          throw new Error('No statement ID in response')
+        }
 
       } catch (error) {
         // Update status to error

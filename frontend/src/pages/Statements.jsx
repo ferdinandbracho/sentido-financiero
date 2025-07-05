@@ -11,18 +11,26 @@ import {
   Upload,
   AlertCircle,
   RefreshCw,
-  MoreVertical
+  MoreVertical,
+  Check,
+  Minus
 } from 'lucide-react'
-import { useStatements, useDeleteStatement, useProcessStatement } from '../hooks/useStatements'
+import { useStatements, useDeleteStatement, useProcessStatement, useBulkDeleteStatements, useBulkDownloadStatements } from '../hooks/useStatements'
+import ConfirmationModal from '../components/ConfirmationModal'
 import { formatCurrency, formatDate, formatFileSize, getStatusInfo } from '../utils/helpers'
 import { clsx } from 'clsx'
 
 export function Statements() {
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
   const [sortBy, setSortBy] = useState('upload_date')
   const [sortOrder, setSortOrder] = useState('desc')
   const [openMenuId, setOpenMenuId] = useState(null)
+  const [selectedStatements, setSelectedStatements] = useState(new Set())
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    id: null,
+    isBulk: false
+  })
   
   const handleMenuToggle = (id, isOpen) => {
     setOpenMenuId(isOpen ? id : null);
@@ -31,6 +39,8 @@ export function Statements() {
   const { data: statements = [], isLoading, error, refetch } = useStatements()
   const deleteStatement = useDeleteStatement()
   const processStatement = useProcessStatement()
+  const bulkDeleteStatements = useBulkDeleteStatements()
+  const bulkDownloadStatements = useBulkDownloadStatements()
   
   // Close menu when clicking outside
   useEffect(() => {
@@ -52,10 +62,9 @@ export function Statements() {
   // Filter and sort statements
   const filteredStatements = statements
     .filter(statement => {
-      const matchesSearch = statement.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (statement.bank_name && statement.bank_name.toLowerCase().includes(searchTerm.toLowerCase()))
-      const matchesStatus = statusFilter === 'all' || statement.processing_status === statusFilter
-      return matchesSearch && matchesStatus
+      return searchTerm === '' || 
+        statement.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (statement.bank_name && statement.bank_name.toLowerCase().includes(searchTerm.toLowerCase()))
     })
     .sort((a, b) => {
       let aVal = a[sortBy]
@@ -73,13 +82,17 @@ export function Statements() {
       }
     })
 
-  const handleDelete = async (id) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar este estado de cuenta?')) {
-      try {
+  const handleDelete = async (id, isBulk = false) => {
+    try {
+      if (isBulk) {
+        await bulkDeleteStatements.mutateAsync(Array.from(selectedStatements))
+        setSelectedStatements(new Set())
+      } else if (id) {
         await deleteStatement.mutateAsync(id)
-      } catch (error) {
-        console.error('Error deleting statement:', error)
       }
+      setDeleteModal({ isOpen: false, id: null, isBulk: false })
+    } catch (error) {
+      console.error('Error deleting statement(s):', error)
     }
   }
 
@@ -88,6 +101,44 @@ export function Statements() {
       await processStatement.mutateAsync(id)
     } catch (error) {
       console.error('Error processing statement:', error)
+    }
+  }
+
+  // Selection handlers
+  const handleSelectStatement = (id) => {
+    const newSelected = new Set(selectedStatements)
+    if (newSelected.has(id)) {
+      newSelected.delete(id)
+    } else {
+      newSelected.add(id)
+    }
+    setSelectedStatements(newSelected)
+  }
+
+  const handleSelectAll = () => {
+    if (selectedStatements.size === filteredStatements.length) {
+      setSelectedStatements(new Set())
+    } else {
+      setSelectedStatements(new Set(filteredStatements.map(s => s.id)))
+    }
+  }
+
+  const handleBulkDelete = () => {
+    if (selectedStatements.size === 0) return
+    setDeleteModal({
+      isOpen: true,
+      id: null,
+      isBulk: true
+    })
+  }
+
+  const handleBulkDownload = async () => {
+    if (selectedStatements.size === 0) return
+    
+    try {
+      await bulkDownloadStatements.mutateAsync(Array.from(selectedStatements))
+    } catch (error) {
+      console.error('Error bulk downloading statements:', error)
     }
   }
 
@@ -120,9 +171,34 @@ export function Statements() {
           <h1 className="text-2xl font-bold text-gray-900">Estados de Cuenta</h1>
           <p className="mt-1 text-sm text-gray-500">
             Gestiona y analiza tus estados de cuenta subidos
+            {selectedStatements.size > 0 && (
+              <span className="ml-2 text-primary-600 font-medium">
+                {selectedStatements.size} seleccionados
+              </span>
+            )}
           </p>
         </div>
-        <div className="mt-4 sm:mt-0">
+        <div className="mt-4 sm:mt-0 flex items-center space-x-3">
+          {selectedStatements.size > 0 && (
+            <>
+              <button
+                onClick={handleBulkDownload}
+                disabled={bulkDownloadStatements.isPending}
+                className="btn btn-secondary btn-md"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Descargar ({selectedStatements.size})
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                disabled={bulkDeleteStatements.isPending}
+                className="btn btn-danger btn-md"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Eliminar ({selectedStatements.size})
+              </button>
+            </>
+          )}
           <Link to="/upload" className="btn btn-primary btn-md">
             <Upload className="h-4 w-4 mr-2" />
             Subir Nuevo
@@ -134,37 +210,54 @@ export function Statements() {
       <div className="bg-white shadow rounded-lg">
         <div className="px-6 py-4">
           <div className="sm:flex sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-            {/* Search */}
-            <div className="flex-1 max-w-lg">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Buscar por nombre de archivo o banco..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="input pl-10"
-                />
+            {/* Select All + Search */}
+            <div className="flex items-center space-x-4 flex-1 max-w-lg">
+              {/* Select All Checkbox */}
+              <div className="flex items-center">
+                <label className="relative flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filteredStatements.length > 0 && selectedStatements.size === filteredStatements.length}
+                    onChange={handleSelectAll}
+                    className="sr-only"
+                  />
+                  <div className={clsx(
+                    'w-5 h-5 rounded border-2 flex items-center justify-center transition-colors',
+                    filteredStatements.length > 0 && selectedStatements.size === filteredStatements.length
+                      ? 'bg-primary-600 border-primary-600'
+                      : selectedStatements.size > 0
+                      ? 'bg-primary-100 border-primary-300'
+                      : 'border-gray-300 hover:border-gray-400'
+                  )}>
+                    {filteredStatements.length > 0 && selectedStatements.size === filteredStatements.length ? (
+                      <Check className="w-3 h-3 text-white" />
+                    ) : selectedStatements.size > 0 ? (
+                      <Minus className="w-3 h-3 text-primary-600" />
+                    ) : null}
+                  </div>
+                </label>
+                <span className="ml-2 text-sm text-gray-600">
+                  Seleccionar todos
+                </span>
+              </div>
+              
+              {/* Search */}
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Buscar por nombre de archivo o banco..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="input pl-10"
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Filters */}
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Filter className="h-4 w-4 text-gray-400" />
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="input w-auto"
-                >
-                  <option value="all">Todos los estados</option>
-                  <option value="uploaded">Subidos</option>
-                  <option value="processing">Procesando</option>
-                  <option value="processed">Procesados</option>
-                  <option value="failed">Con errores</option>
-                </select>
-              </div>
-
+            {/* Sort */}
+            <div className="flex items-center">
               <select
                 value={`${sortBy}-${sortOrder}`}
                 onChange={(e) => {
@@ -207,18 +300,18 @@ export function Statements() {
           <div className="px-6 py-12 text-center">
             <FileText className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">
-              {searchTerm || statusFilter !== 'all' 
+              {searchTerm 
                 ? 'No se encontraron resultados' 
                 : 'No hay estados de cuenta'
               }
             </h3>
             <p className="mt-1 text-sm text-gray-500">
-              {searchTerm || statusFilter !== 'all'
-                ? 'Intenta ajustar los filtros de búsqueda'
+              {searchTerm
+                ? 'Intenta ajustar los términos de búsqueda'
                 : 'Comienza subiendo tu primer estado de cuenta'
               }
             </p>
-            {(!searchTerm && statusFilter === 'all') && (
+            {!searchTerm && (
               <div className="mt-6">
                 <Link to="/upload" className="btn btn-primary btn-sm">
                   <Upload className="h-4 w-4 mr-2" />
@@ -233,12 +326,14 @@ export function Statements() {
               <StatementItem
                 key={statement.id}
                 statement={statement}
-                onDelete={() => handleDelete(statement.id)}
+                onDelete={() => setDeleteModal({ isOpen: true, id: statement.id, isBulk: false })}
                 onProcess={() => handleProcess(statement.id)}
                 isDeleting={deleteStatement.isLoading && deleteStatement.variables === statement.id}
                 isProcessing={processStatement.isLoading && processStatement.variables === statement.id}
                 isMenuOpen={openMenuId === statement.id}
                 onMenuToggle={handleMenuToggle}
+                isSelected={selectedStatements.has(statement.id)}
+                onSelect={() => handleSelectStatement(statement.id)}
               />
             ))}
           </ul>
@@ -250,18 +345,12 @@ export function Statements() {
         <div className="bg-white shadow rounded-lg">
           <div className="px-6 py-4">
             <h3 className="text-sm font-medium text-gray-900 mb-4">Resumen</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="text-center">
                 <p className="text-2xl font-bold text-gray-900">
                   {filteredStatements.length}
                 </p>
                 <p className="text-sm text-gray-500">Total de estados</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-green-600">
-                  {filteredStatements.filter(s => s.processing_status === 'processed').length}
-                </p>
-                <p className="text-sm text-gray-500">Procesados</p>
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-blue-600">
@@ -279,11 +368,28 @@ export function Statements() {
           </div>
         </div>
       )}
+      
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, id: null, isBulk: false })}
+        onConfirm={() => handleDelete(deleteModal.id, deleteModal.isBulk)}
+        title={deleteModal.isBulk 
+          ? `Eliminar ${selectedStatements.size} estados de cuenta` 
+          : 'Eliminar estado de cuenta'}
+        message={deleteModal.isBulk
+          ? `¿Estás seguro de que deseas eliminar los ${selectedStatements.size} estados de cuenta seleccionados? Esta acción no se puede deshacer.`
+          : '¿Estás seguro de que deseas eliminar este estado de cuenta? Esta acción no se puede deshacer.'}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        isDanger={true}
+        isLoading={deleteStatement.isLoading || bulkDeleteStatements.isLoading}
+      />
     </div>
   )
 }
 
-function StatementItem({ statement, onDelete, onProcess, isDeleting, isProcessing, isMenuOpen, onMenuToggle }) {
+function StatementItem({ statement, onDelete, onProcess, isDeleting, isProcessing, isMenuOpen, onMenuToggle, isSelected, onSelect }) {
   const dropdownRef = useRef(null);
   const statusInfo = getStatusInfo(statement.processing_status)
   
@@ -304,9 +410,32 @@ function StatementItem({ statement, onDelete, onProcess, isDeleting, isProcessin
   }, [isMenuOpen, onMenuToggle, statement.id]);
 
   return (
-    <li className="px-6 py-4 hover:bg-gray-50">
+    <li className={clsx(
+      'px-6 py-4 hover:bg-gray-50 transition-colors',
+      isSelected && 'bg-primary-50'
+    )}>
       <div className="flex items-center justify-between">
         <div className="flex items-center min-w-0 flex-1">
+          {/* Checkbox */}
+          <div className="flex-shrink-0 mr-4">
+            <label className="relative flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={onSelect}
+                className="sr-only"
+              />
+              <div className={clsx(
+                'w-5 h-5 rounded border-2 flex items-center justify-center transition-colors',
+                isSelected
+                  ? 'bg-primary-600 border-primary-600'
+                  : 'border-gray-300 hover:border-gray-400'
+              )}>
+                {isSelected && <Check className="w-3 h-3 text-white" />}
+              </div>
+            </label>
+          </div>
+          
           <div className="flex-shrink-0">
             <div className={clsx(
               'h-10 w-10 rounded-lg flex items-center justify-center',
@@ -407,16 +536,20 @@ function StatementItem({ statement, onDelete, onProcess, isDeleting, isProcessin
                       Descargar PDF
                     </button>
                     <button
+                      type="button"
                       onClick={(e) => {
+                        e.preventDefault();
                         e.stopPropagation();
+                        e.nativeEvent.stopImmediatePropagation();
                         onDelete();
+                        // Close the dropdown menu
                         onMenuToggle(statement.id, false);
                       }}
                       disabled={isDeleting}
                       className="block w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50 whitespace-nowrap"
                     >
                       <Trash2 className="h-4 w-4 mr-2 inline" />
-                      Eliminar
+                      {isDeleting ? 'Eliminando...' : 'Eliminar'}
                     </button>
                   </div>
                 </div>

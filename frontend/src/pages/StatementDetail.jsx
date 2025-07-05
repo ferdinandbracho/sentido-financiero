@@ -24,6 +24,7 @@ import {
   useDeleteStatement, 
   useProcessStatement 
 } from '../hooks/useStatements'
+import ConfirmationModal from '../components/ConfirmationModal'
 import { 
   formatCurrency, 
   formatDate, 
@@ -44,12 +45,19 @@ export function StatementDetail() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [transactionFilter, setTransactionFilter] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  
+  // Redirect to statements list if ID is invalid
+  useEffect(() => {
+    if (!id || id === 'undefined') {
+      console.error('Invalid statement ID in URL, redirecting to statements list')
+      navigate('/statements', { replace: true })
+    }
+  }, [id, navigate])
 
   const { data: statement, isLoading: statementLoading, error: statementError } = useStatement(id)
   const { data: transactions = [], isLoading: transactionsLoading } = useTransactions(id)
-  const { data: analysis, isLoading: analysisLoading } = useAnalysis(id, {
-    enabled: statement?.processing_status === 'processed'
-  })
+  const { data: analysis, isLoading: analysisLoading } = useAnalysis(id)
   
   const deleteStatement = useDeleteStatement()
   const processStatement = useProcessStatement()
@@ -59,13 +67,11 @@ export function StatementDetail() {
   }
 
   const handleDelete = async () => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar este estado de cuenta?')) {
-      try {
-        await deleteStatement.mutateAsync(id)
-        navigate('/statements')
-      } catch (error) {
-        console.error('Error deleting statement:', error)
-      }
+    try {
+      await deleteStatement.mutateAsync(id)
+      navigate('/statements')
+    } catch (error) {
+      console.error('Error deleting statement:', error)
     }
   }
 
@@ -128,6 +134,17 @@ export function StatementDetail() {
 
   return (
     <div className="space-y-6">
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDelete}
+        title="Eliminar estado de cuenta"
+        message="¿Estás seguro de que deseas eliminar este estado de cuenta? Esta acción no se puede deshacer."
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        isDanger={true}
+        isLoading={deleteStatement.isLoading}
+      />
       {/* Breadcrumb */}
       <nav className="flex" aria-label="Breadcrumb">
         <ol className="inline-flex items-center space-x-1 md:space-x-2 rtl:space-x-reverse">
@@ -199,9 +216,9 @@ export function StatementDetail() {
           </button>
           
           <button
-            onClick={handleDelete}
-            disabled={deleteStatement.isPending}
+            onClick={() => setShowDeleteModal(true)}
             className="btn btn-danger btn-md"
+            disabled={deleteStatement.isLoading}
           >
             <Trash2 className="h-4 w-4 mr-2" />
             Eliminar
@@ -231,9 +248,10 @@ export function StatementDetail() {
         />
         <StatCard
           title="Período"
-          value={statement?.statement_period_start && statement?.statement_period_end
-            ? `${formatDate(statement.statement_period_start, 'short')} - ${formatDate(statement.statement_period_end, 'short')}`
-            : 'No disponible'
+          value={
+            statement?.statement_period_start && statement?.statement_period_end
+              ? `${formatDate(statement.statement_period_start, 'short')} - ${formatDate(statement.statement_period_end, 'short')}`
+              : statement?.statement_period || 'No disponible'
           }
           icon={Calendar}
           color="purple"
@@ -283,7 +301,7 @@ export function StatementDetail() {
       )}
 
       {/* Tabs */}
-      {statement?.processing_status === 'processed' && (
+      {(statement && (statement.processing_status === 'processed' || statement.processing_status === 'COMPLETED' || statement.total_transactions > 0 || transactions.length > 0)) && (
         <div className="bg-white shadow rounded-lg">
           <div className="border-b border-gray-200">
             <nav className="flex space-x-8 px-6">

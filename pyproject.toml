@@ -26,6 +26,9 @@ dependencies = [
     "tiktoken>=0.8.0", # For OpenAI token counting
     "pytesseract>=0.3.13",
     "pillow>=11.2.1",
+    "camelot-py[base]>=0.10.1",  # PDF table extraction
+    "tabula-py>=2.8.2",  # Alternative PDF table extraction
+    "opencv-python>=4.8.0",  # Image preprocessing for OCR
 ]
 
 [project.optional-dependencies]

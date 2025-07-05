@@ -35,15 +35,46 @@ api.interceptors.response.use(
 export const statementsAPI = {
   // Upload a PDF file
   upload: async (file) => {
-    const formData = new FormData()
-    formData.append('file', file)
-    
-    const response = await api.post('/statements/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
-    return response.data
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      
+      console.log('Sending upload request...')
+      const response = await api.post('/statements/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+      
+      console.log('Upload response received:', response.data)
+      
+      // Normalize the response format
+      const data = response.data;
+      return {
+        ...data,
+        // Ensure we always have a statement_id field, even if it's called 'id' in the response
+        statement_id: data.statement_id || data.id,
+        // Include the raw response for debugging
+        _raw: data
+      };
+    } catch (error) {
+      console.error('Upload error:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        headers: error.response?.headers,
+      });
+      
+      // Rethrow with a more descriptive error
+      const errorMessage = error.response?.data?.detail || 
+                         error.response?.data?.message || 
+                         error.message || 
+                         'Failed to upload statement';
+      
+      const err = new Error(errorMessage);
+      err.response = error.response;
+      throw err;
+    }
   },
 
   // Get all statements
@@ -80,6 +111,46 @@ export const statementsAPI = {
   delete: async (id) => {
     const response = await api.delete(`/statements/${id}`)
     return response.data
+  },
+
+  // Bulk delete statements
+  bulkDelete: async (statementIds) => {
+    const response = await api.post('/statements/bulk-delete', {
+      statement_ids: statementIds
+    })
+    return response.data
+  },
+
+  // Bulk download statements
+  bulkDownload: async (statementIds) => {
+    const response = await api.post('/statements/bulk-download', {
+      statement_ids: statementIds
+    }, {
+      responseType: 'blob'
+    })
+    
+    // Create download link
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href = url
+    
+    // Get filename from Content-Disposition header or use default
+    const contentDisposition = response.headers['content-disposition']
+    let filename = 'statements_export.csv'
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename=(.+)/)
+      if (filenameMatch) {
+        filename = filenameMatch[1].replace(/['"]/g, '')
+      }
+    }
+    
+    link.setAttribute('download', filename)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+    
+    return { success: true, filename }
   },
 }
 
