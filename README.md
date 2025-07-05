@@ -1,58 +1,77 @@
-# 🚀 SentidoFinanciero - AI-Powered Bank Statement Analyzer
+# SentidoFinanciero - AI-Powered Bank Statement Analyzer
 
 A modern, full-stack application that uses OpenAI's GPT models through LangChain to automatically categorize and analyze bank statement transactions. Upload PDF statements and get intelligent insights about your spending patterns.
 
 ![SentidoFinanciero Demo](https://via.placeholder.com/800x400/3B82F6/FFFFFF?text=SentidoFinanciero+Demo)
 
-## ✨ Features
+## Features in Detail
 
-### 🤖 **Smart AI Categorization**
-- **Hybrid Classification**: Combines exact matching, pattern recognition, and GPT intelligence
-- **OpenAI Integration**: Uses GPT-3.5-turbo or GPT-4 through LangChain for smart categorization
-- **Multi-Bank Support**: Works with Mexican bank statements (BBVA, Banamex, Santander, etc.)
-- **Learning System**: Consistent and accurate categorization with AI reasoning
+### Smart Categorization
 
-### 📊 **Comprehensive Analysis**
-- **Spending Insights**: Detailed breakdown by categories with AI-powered insights
-- **Interactive Charts**: Beautiful visualizations with Chart.js
-- **Transaction Management**: Edit categories and add notes
-- **Export Data**: Download analyses and reports
+* **Hybrid Approach**: Combines rules-based and ML-based categorization
+* **Learning System**: Improves over time with user feedback
+* **Multi-language Support**: Works with English and Spanish transactions
 
-### 🎨 **Modern Interface**
-- **Responsive Design**: Works perfectly on desktop, tablet, and mobile
-- **Real-time Updates**: Live processing status and notifications
-- **Drag & Drop Upload**: Intuitive file upload experience
-- **Dark/Light Themes**: Comfortable viewing in any environment
+### Data Visualization
 
-### 🔒 **Privacy & Security**
-- **Secure Cloud AI**: Uses OpenAI API with secure connections
-- **No Data Storage**: Transaction data is not stored by OpenAI
-- **Encrypted Processing**: Secure handling of financial data
-- **Local File Storage**: PDFs stored securely on your infrastructure
+* **Interactive Charts**: Built with Chart.js
+* **Custom Reports**: Generate and export detailed reports
+* **Spending Trends**: Track expenses over time
 
-## 🏗 Architecture
+### Security & Privacy
 
+* **End-to-End Encryption**: All data encrypted in transit and at rest
+* **Data Minimization**: Only processes necessary transaction data
+* **GDPR Compliant**: Built with privacy in mind
+
+### Modern Interface
+
+* **Responsive Design**: Works perfectly on desktop, tablet, and mobile
+* **Real-time Updates**: Live processing status and notifications
+* **Drag & Drop Upload**: Intuitive file upload experience
+* **Dark/Light Themes**: Comfortable viewing in any environment
+
+## Architecture
+
+```mermaid
+graph TD
+    subgraph Frontend[React Frontend]
+        A[File Upload] -->|PDF Statements| B[Processing Status]
+        B --> C[Interactive Dashboard]
+        C --> D[Charts & Visualizations]
+        C --> E[Transaction Management]
+    end
+
+    subgraph Backend[FastAPI Backend]
+        F[API Gateway] --> G[Authentication]
+        G --> H[PDF Parser]
+        H --> I[Transaction Extractor]
+        I --> J[AI Categorizer]
+        J --> K[Analysis Engine]
+    end
+
+    subgraph Database[PostgreSQL]
+        L[Statements]
+        M[Transactions]
+        N[Categories]
+        O[Users]
+    end
+
+    subgraph AI[AI Services]
+        P[OpenAI API]
+        Q[LangChain]
+        R[Embeddings]
+    end
+
+    A -->|HTTP POST /upload| F
+    C -->|HTTP GET /api/statements| F
+    F -->|Query| L
+    F -->|Query| M
+    J -->|API Call| P
+    J -->|Use| Q
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   React Frontend │    │  FastAPI Backend │    │  PostgreSQL DB  │
-│                 │    │                 │    │                 │
-│  • File Upload  │◄──►│  • PDF Parser   │◄──►│  • Statements   │
-│  • Charts       │    │  • AI Categorizer│    │  • Transactions │
-│  • Transaction  │    │  • Analysis     │    │  • Categories   │
-│    Management   │    │  • REST API     │    │                 │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-                                │
-                                ▼
-                       ┌─────────────────┐
-                       │   OpenAI API    │
-                       │                 │
-                       │ • GPT-3.5/GPT-4 │
-                       │ • LangChain     │
-                       │ • Smart Analysis│
-                       └─────────────────┘
-```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -112,13 +131,14 @@ cp example.env .env
 ./setup.sh
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
-**Required:**
+#### Required
+
 ```env
-# OpenAI Configuration (Required)
+# OpenAI Configuration
 OPENAI_API_KEY=your-openai-api-key-here
 OPENAI_MODEL=gpt-3.5-turbo  # or gpt-4 for better accuracy
 
@@ -133,7 +153,8 @@ DB_NAME=statement_sense
 SECRET_KEY=your-secret-key-here
 ```
 
-**Optional:**
+#### Optional
+
 ```env
 # OpenAI Fine-tuning
 OPENAI_MAX_TOKENS=150
@@ -152,25 +173,28 @@ BACKEND_CORS_ORIGINS=http://localhost:3000
 
 ### Model Selection
 
-- **GPT-3.5-turbo**: Fast and cost-effective, good for most use cases
-- **GPT-4**: Higher accuracy for complex transactions, more expensive
+* **GPT-3.5-turbo**: Fast and cost-effective, good for most use cases
+* **GPT-4**: Higher accuracy for complex transactions, more expensive
 
 Update your `.env` file:
+
 ```env
 OPENAI_MODEL=gpt-4  # For maximum accuracy
 # OR
 OPENAI_MODEL=gpt-3.5-turbo  # For cost efficiency
 ```
 
-## 📚 Usage Guide
+## Usage Guide
 
 ### 1. Upload Statement
+
 1. Navigate to **Upload** page
 2. Drag & drop PDF file or click to select
 3. Wait for upload confirmation
 4. Click "Process" to analyze with AI
 
 ### 2. View Analysis
+
 1. Go to **Statements** page
 2. Click on processed statement
 3. Explore different tabs:
@@ -179,14 +203,15 @@ OPENAI_MODEL=gpt-3.5-turbo  # For cost efficiency
    - **Analysis**: In-depth spending analysis
 
 ### 3. Manage Categories
+
 1. Click on any transaction
 2. Review AI-suggested category
 3. Edit if needed (system learns from corrections)
 4. Export data for external use
 
-## 🧠 AI Categorization How It Works
+## AI Categorization
 
-### 3-Tier Enhanced Classification System
+### How It Works: 3-Tier Enhanced Classification System
 
 ```python
 # Tier 1: Exact Keyword Matching (Fastest)
@@ -200,43 +225,43 @@ OPENAI_MODEL=gpt-3.5-turbo  # For cost efficiency
 ```
 
 ### Performance & Cost Optimization
-- **85%** of transactions classified by Tiers 1-2 (< 1ms, $0 cost)
-- **15%** require GPT analysis (~500-1500ms, ~$0.001-0.003 per transaction)
-- **Intelligent Batching**: Groups similar transactions to reduce API calls
-- **Context Awareness**: GPT understands Mexican merchant names and contexts
+* **85%** of transactions classified by Tiers 1-2 (< 1ms, $0 cost)
+* **15%** require GPT analysis (~500-1500ms, ~$0.001-0.003 per transaction)
+* **Intelligent Batching**: Groups similar transactions to reduce API calls
+* **Context Awareness**: GPT understands Mexican merchant names and contexts
 
 ### Supported Categories
-- 🍽️ **Alimentación** - Restaurants, groceries, convenience stores
-- ⛽ **Gasolineras** - Gas stations, fuel
-- 🔧 **Servicios** - Utilities, subscriptions, streaming
-- 🏥 **Salud** - Healthcare, pharmacies, medical
-- 🚗 **Transporte** - Uber, taxi, parking, public transport
-- 🎬 **Entretenimiento** - Movies, bars, entertainment
-- 👕 **Ropa** - Clothing, fashion, department stores
-- 📚 **Educación** - Schools, books, courses
-- 💸 **Transferencias** - Bank transfers, payments
-- 🛡️ **Seguros** - Insurance, policies
-- 📊 **Intereses/Comisiones** - Bank fees, interest
-- 📋 **Otros** - Miscellaneous
+* **Alimentación** - Restaurants, groceries, convenience stores
+* **Gasolineras** - Gas stations, fuel
+* **Servicios** - Utilities, subscriptions, streaming
+* **Salud** - Healthcare, pharmacies, medical
+* **Transporte** - Uber, taxi, parking, public transport
+* **Entretenimiento** - Movies, bars, entertainment
+* **Ropa** - Clothing, fashion, department stores
+* **Educación** - Schools, books, courses
+* **Transferencias** - Bank transfers, payments
+* **Seguros** - Insurance, policies
+* **Intereses/Comisiones** - Bank fees, interest
+* **Otros** - Miscellaneous
 
-## 🔌 API Documentation
+## API Documentation
 
 ### Core Endpoints
 
 #### Statements
-- `POST /api/v1/statements/upload` - Upload PDF file
-- `GET /api/v1/statements` - List all statements
-- `GET /api/v1/statements/{id}` - Get statement details
-- `POST /api/v1/statements/{id}/process` - Process statement with AI
-- `DELETE /api/v1/statements/{id}` - Delete statement
+* `POST /api/v1/statements/upload` - Upload PDF file
+* `GET /api/v1/statements` - List all statements
+* `GET /api/v1/statements/{id}` - Get statement details
+* `POST /api/v1/statements/{id}/process` - Process statement with AI
+* `DELETE /api/v1/statements/{id}` - Delete statement
 
 #### Transactions
-- `GET /api/v1/statements/{id}/transactions` - Get transactions
-- `PUT /api/v1/transactions/{id}` - Update transaction
-- `DELETE /api/v1/transactions/{id}` - Delete transaction
+* `GET /api/v1/statements/{id}/transactions` - Get transactions
+* `PUT /api/v1/transactions/{id}` - Update transaction
+* `DELETE /api/v1/transactions/{id}` - Delete transaction
 
 #### Analysis
-- `GET /api/v1/statements/{id}/analysis` - Get AI-powered spending analysis
+* `GET /api/v1/statements/{id}/analysis` - Get AI-powered spending analysis
 
 ### Example Request
 ```bash
@@ -250,7 +275,7 @@ curl "http://localhost:8000/api/v1/statements/{id}/analysis"
 
 Full API documentation available at: `http://localhost:8000/docs`
 
-## 🛠 Development
+## Development
 
 ### Project Structure
 ```
@@ -303,7 +328,7 @@ npm test
 npm run test:e2e
 ```
 
-## 🐳 Docker Services
+## Docker Services
 
 | Service | Port | Description |
 |---------|------|-------------|
@@ -329,19 +354,19 @@ docker-compose down
 docker-compose up --build
 ```
 
-## 💰 Cost Considerations
+## Cost Considerations
 
 ### OpenAI API Costs (Estimated)
 
 **GPT-3.5-turbo:**
-- Input: $0.0005 / 1K tokens
-- Output: $0.0015 / 1K tokens
-- **~$0.001-0.003 per complex transaction**
+* Input: $0.0005 / 1K tokens
+* Output: $0.0015 / 1K tokens
+* **~$0.001-0.003 per complex transaction**
 
 **GPT-4:**
-- Input: $0.01 / 1K tokens  
-- Output: $0.03 / 1K tokens
-- **~$0.01-0.03 per complex transaction**
+* Input: $0.01 / 1K tokens
+* Output: $0.03 / 1K tokens
+* **~$0.01-0.03 per complex transaction**
 
 ### Cost Optimization Tips
 1. **Use GPT-3.5-turbo** for most use cases (good accuracy, lower cost)
@@ -350,34 +375,34 @@ docker-compose up --build
 4. **Set monthly limits** in OpenAI dashboard
 
 **Example Monthly Cost:**
-- 500 transactions/month
-- 15% require AI (75 transactions)
-- GPT-3.5-turbo: ~$0.08-0.23/month
-- GPT-4: ~$0.75-2.25/month
+* 500 transactions/month
+* 15% require AI (75 transactions)
+* GPT-3.5-turbo: ~$0.08-0.23/month
+* GPT-4: ~$0.75-2.25/month
 
-## 🔍 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
 #### OpenAI API Errors
-- **Invalid API Key**: Check your `.env` file and OpenAI dashboard
-- **Rate Limits**: Upgrade your OpenAI plan or implement retry logic
-- **Insufficient Credits**: Add billing information to your OpenAI account
+* **Invalid API Key**: Check your `.env` file and OpenAI dashboard
+* **Rate Limits**: Upgrade your OpenAI plan or implement retry logic
+* **Insufficient Credits**: Add billing information to your OpenAI account
 
 #### Upload Fails
-- Check file is PDF format
-- Ensure file size < 50MB
-- Verify backend is running
+* Check file is PDF format
+* Ensure file size < 50MB
+* Verify backend is running
 
 #### Processing Stuck
-- Check OpenAI API status
-- Verify API key permissions
-- Check backend logs for errors
+* Check OpenAI API status
+* Verify API key permissions
+* Check backend logs for errors
 
 #### Database Errors
-- Check PostgreSQL is running
-- Run migrations: `alembic upgrade head`
-- Reset database: `python init_db.py`
+* Check PostgreSQL is running
+* Run migrations: `alembic upgrade head`
+* Reset database: `python init_db.py`
 
 ### Logs and Debugging
 ```bash
@@ -392,7 +417,7 @@ curl -H "Authorization: Bearer $OPENAI_API_KEY" \
      https://api.openai.com/v1/usage
 ```
 
-## 🚀 Production Deployment
+## Production Deployment
 
 ### Environment Setup
 1. Use production OpenAI API key with proper limits
@@ -409,49 +434,47 @@ docker-compose -f docker-compose.prod.yml up -d
 ```
 
 ### Performance Optimization
-- Enable PostgreSQL connection pooling
-- Use Redis for caching categorization results
-- Configure CDN for static assets
-- Optimize Docker images
-- Set up load balancing
-- Implement OpenAI response caching
+* Enable PostgreSQL connection pooling
+* Use Redis for caching categorization results
+* Configure CDN for static assets
+* Optimize Docker images
+* Set up load balancing
+* Implement OpenAI response caching
 
-## 🤝 Contributing
+## Contributing
+
+We welcome contributions! Please read our [Contributing Guidelines](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
 
 1. Fork the repository
-2. Create feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push to branch: `git push origin feature/amazing-feature`
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
 ### Development Guidelines
-- Follow PEP 8 for Python code
-- Use Prettier for JavaScript formatting
-- Write tests for new features
-- Update documentation
-- Use conventional commit messages
-- Test with both GPT-3.5-turbo and GPT-4
+* Follow PEP 8 for Python code
+* Use Prettier for JavaScript formatting
+* Write tests for new features
+* Update documentation
+* Use conventional commit messages
+* Test with both GPT-3.5-turbo and GPT-4
 
-## 📄 License
+## Acknowledgments
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+* **OpenAI** - GPT models for intelligent categorization
+* **LangChain** - Simplified LLM integration framework
+* **FastAPI** - Modern Python web framework
+* **React** - Frontend framework
+* **Tailwind CSS** - Utility-first CSS
+* **Chart.js** - Data visualization
+* **PostgreSQL** - Database system
 
-## 🙏 Acknowledgments
+## Support
 
-- **OpenAI** - GPT models for intelligent categorization
-- **LangChain** - Simplified LLM integration framework
-- **FastAPI** - Modern Python web framework
-- **React** - Frontend framework
-- **Tailwind CSS** - Utility-first CSS
-- **Chart.js** - Data visualization
-- **PostgreSQL** - Database system
-
-## 📞 Support
-
-- **Documentation**: Check the `/docs` endpoints
-- **Issues**: Report bugs via GitHub Issues
-- **Discussions**: Use GitHub Discussions for questions
-- **Email**: [contact@SentidoFinanciero.com](mailto:contact@SentidoFinanciero.com)
+* **Documentation**: Check the `/docs` endpoints
+* **Issues**: Report bugs via GitHub Issues
+* **Discussions**: Use GitHub Discussions for questions
+* **Email**: [contact@SentidoFinanciero.com](mailto:contact@SentidoFinanciero.com)
 
 ---
 
