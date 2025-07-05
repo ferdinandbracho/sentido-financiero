@@ -1,4 +1,4 @@
-# SentidoFinanciero - AI-Powered Bank Statement Analyzer
+# AI-Powered Bank Statement Analyzer
 
 A modern, full-stack application that uses OpenAI's GPT models through LangChain to automatically categorize and analyze bank statement transactions. Upload PDF statements and get intelligent insights about your spending patterns.
 
