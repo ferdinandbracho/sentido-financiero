@@ -196,7 +196,7 @@ async def upload_statement(
             )
 
         # Process statement using template-first approach
-        extraction_result = pdf_processor.process_statement(file_content)
+        extraction_result = pdf_processor.process_statement(file_content, file.filename)
 
         # Log the extraction result (without sensitive data)
         result_log = {
@@ -226,8 +226,10 @@ async def upload_statement(
             ),
             extraction_method=(
                 ExtractionMethodEnum.MEXICAN_TEMPLATE
-                if extraction_result.get("method") == "template"
+                if extraction_result.get("extraction_method") in ["ocr_table_parser", "enhanced_table_extraction"]
                 else ExtractionMethodEnum.LLM_FALLBACK
+                if extraction_result.get("extraction_method") == "llm_fallback"
+                else ExtractionMethodEnum.MEXICAN_TEMPLATE
             ),
             overall_confidence=extraction_result.get("confidence"),
         )
@@ -286,7 +288,7 @@ async def upload_statement(
                         amount=tx_data.get("amount"),
                         transaction_type=(
                             TransactionTypeEnum.CARGO
-                            if tx_data.get("type") == "DEBIT"
+                            if tx_data.get("type") in ["cargo", "DEBIT"]
                             else TransactionTypeEnum.ABONO
                         ),
                         category=tx_data.get(
@@ -400,15 +402,21 @@ async def list_statements(
             stmt_total_transactions = (
                 len(stmt.transactions) if stmt.transactions else 0
             )
-            stmt_total_amount = (
-                sum(
-                    float(tx.amount)
-                    for tx in (stmt.transactions or [])
-                    if tx.amount is not None
-                )
-                if stmt.transactions
-                else 0.0
-            )
+            # Calculate total amount considering transaction types (credits - debits)
+            stmt_total_amount = 0.0
+            stmt_total_credits = 0.0
+            stmt_total_debits = 0.0
+            
+            if stmt.transactions:
+                for tx in stmt.transactions:
+                    if tx.amount is not None:
+                        amount = float(tx.amount)
+                        if tx.transaction_type == TransactionTypeEnum.CARGO:
+                            stmt_total_debits += amount  # Sum debits
+                            stmt_total_amount -= amount  # Subtract debits from total
+                        else:
+                            stmt_total_credits += amount  # Sum credits
+                            stmt_total_amount += amount  # Add credits to total
 
             # Format statement period if available
             stmt_period = None
@@ -448,6 +456,8 @@ async def list_statements(
                 "statement_period": stmt_period,
                 "total_transactions": stmt_total_transactions,
                 "total_amount": stmt_total_amount,
+                "total_credits": stmt_total_credits,
+                "total_debits": stmt_total_debits,
                 "extraction_method": (
                     stmt.extraction_method or "MEXICAN_TEMPLATE"
                 ),
@@ -526,7 +536,7 @@ async def get_statement_detail(
             
             total_credits = credits_total
             total_debits = debits_total
-            total_amount = credits_total + debits_total  # Net amount
+            total_amount = credits_total - debits_total  # Net amount (credits - debits)
 
         # Format statement period if available
         statement_period = None
@@ -677,7 +687,7 @@ async def test_parsing(
             )
 
         # Get detailed parsing results
-        result = pdf_processor.process_statement(file_content)
+        result = pdf_processor.process_statement(file_content, file.filename)
 
         # Add PDF metadata for debugging
         pdf_metadata = pdf_processor.get_pdf_metadata(file_content)

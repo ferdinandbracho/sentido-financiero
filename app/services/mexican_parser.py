@@ -827,6 +827,101 @@ class MexicanStatementParser:
             )
 
         return validation_result
+    
+    def _validate_mexican_format(self, text: str) -> bool:
+        """
+        Validate if text follows Mexican CONDUSEF format.
+        Uses flexible validation for OCR-extracted content.
+        """
+        # Traditional validation (exact text match)
+        if re.search(MEXICAN_PATTERNS["payment_section"], text):
+            self.logger.debug("Found traditional CONDUSEF format indicator")
+            return True
+        
+        # Flexible validation for OCR-extracted table format
+        text_upper = text.upper()
+        
+        # CONDUSEF structure indicators
+        condusef_indicators = [
+            "TU PAGO REQUERIDO",  # Partial match of payment section
+            "DESGLOSE DE MOVIMIENTOS",  # Transaction section
+            "PAGO PARA NO GENERAR INTERESES",  # Payment to avoid interest
+            "CARGOS, ABONOS Y COMPRAS REGULARES",  # Regular charges table
+            "SALDO DEUDOR TOTAL",  # Total debt
+            "LÍMITE DE CRÉDITO",  # Credit limit
+            "CRÉDITO DISPONIBLE"  # Available credit
+        ]
+        
+        # Mexican bank indicators
+        mexican_banks = [
+            "SANTANDER", "BBVA", "BANAMEX", "BANORTE", "HSBC", 
+            "SCOTIABANK", "CITIBANAMEX", "INBURSA", "BANCO AZTECA"
+        ]
+        
+        # Credit card terminology
+        credit_terms = [
+            "TARJETA DE CRÉDITO", "TARJETA DE CREDITO", "ESTADO DE CUENTA",
+            "FECHA DE CORTE", "PAGO MÍNIMO", "PAGO MINIMO"
+        ]
+        
+        # Mexican date patterns (DD-MMM-YYYY format)
+        mexican_date_patterns = [
+            r"\d{1,2}-(ENE|FEB|MAR|ABR|MAY|JUN|JUL|AGO|SEP|OCT|NOV|DIC)-\d{4}",
+            r"(ENE|FEB|MAR|ABR|MAY|JUN|JUL|AGO|SEP|OCT|NOV|DIC)-\d{1,2}",
+        ]
+        
+        # Mexican amount patterns (peso format)
+        mexican_amount_patterns = [
+            r"\$\s*[\d,]+\.?\d*",  # $1,234.56
+            r"[\d,]+\.\d{2}",      # 1,234.56
+        ]
+        
+        # Score different types of indicators
+        condusef_score = sum(1 for indicator in condusef_indicators if indicator in text_upper)
+        bank_score = sum(1 for bank in mexican_banks if bank in text_upper)
+        credit_score = sum(1 for term in credit_terms if term in text_upper)
+        
+        # Check for date patterns
+        date_score = 0
+        for pattern in mexican_date_patterns:
+            if re.search(pattern, text_upper):
+                date_score += 1
+        
+        # Check for amount patterns
+        amount_score = 0
+        for pattern in mexican_amount_patterns:
+            if re.search(pattern, text):
+                amount_score += 1
+        
+        # Special check for OCR table format with "DESGLOSE DE MOVIMIENTOS" header
+        has_transaction_header = "DESGLOSE DE MOVIMIENTOS" in text_upper
+        
+        self.logger.debug(f"Mexican format validation scores - CONDUSEF: {condusef_score}, Bank: {bank_score}, Credit: {credit_score}, Date: {date_score}, Amount: {amount_score}, Transaction header: {has_transaction_header}")
+        
+        # Validation logic for different confidence levels
+        
+        # High confidence: Traditional CONDUSEF indicators
+        if condusef_score >= 2:
+            self.logger.debug("High confidence: Multiple CONDUSEF indicators found")
+            return True
+        
+        # Medium confidence: Bank + credit terms + structural elements
+        if bank_score >= 1 and credit_score >= 1 and (date_score >= 1 or amount_score >= 1):
+            self.logger.debug("Medium confidence: Bank + credit terms + structural elements")
+            return True
+        
+        # OCR table specific: Has transaction header (added by our table extractor)
+        if has_transaction_header:
+            self.logger.debug("OCR table confidence: Found transaction header")
+            return True
+        
+        # Low confidence: Multiple structural indicators
+        if (bank_score + credit_score + date_score + amount_score) >= 4:
+            self.logger.debug("Low confidence: Multiple structural indicators")
+            return True
+        
+        self.logger.debug("No sufficient Mexican format indicators found")
+        return False
 
     def parse_statement(self, text: str) -> Dict[str, any]:
         """

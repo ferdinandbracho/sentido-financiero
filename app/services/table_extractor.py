@@ -82,79 +82,58 @@ class TableExtractor:
         Returns:
             List of extraction results from different methods
         """
-        print(f"🔍 DEBUG: Starting table extraction for page {page_number}")
         results = []
         
         # Strategy 1: pdfplumber
         try:
-            print(f"🔍 DEBUG: Trying pdfplumber extraction")
             result = self._extract_with_pdfplumber(pdf_content, page_number)
             results.append(result)
-            print(f"🔍 DEBUG: pdfplumber result - Success: {result.success}, Confidence: {result.confidence:.2f}, Tables: {len(result.tables)}")
             if result.success and result.confidence > 0.7:
-                print(f"🔍 DEBUG: High confidence with pdfplumber, returning early")
                 self.logger.info(f"High confidence extraction with pdfplumber: {result.confidence:.2f}")
                 return results
         except Exception as e:
-            print(f"🔍 DEBUG: pdfplumber failed: {e}")
             self.logger.warning(f"pdfplumber extraction failed: {e}")
             
         # Strategy 2: Camelot (lattice)
         if CAMELOT_AVAILABLE:
             try:
-                print(f"🔍 DEBUG: Trying Camelot lattice extraction")
                 result = self._extract_with_camelot(pdf_content, page_number, flavor='lattice')
                 results.append(result)
-                print(f"🔍 DEBUG: Camelot lattice result - Success: {result.success}, Confidence: {result.confidence:.2f}, Tables: {len(result.tables)}")
                 if result.success and result.confidence > 0.7:
-                    print(f"🔍 DEBUG: High confidence with Camelot lattice, returning early")
                     self.logger.info(f"High confidence extraction with Camelot lattice: {result.confidence:.2f}")
                     return results
             except Exception as e:
-                print(f"🔍 DEBUG: Camelot lattice failed: {e}")
                 self.logger.warning(f"Camelot lattice extraction failed: {e}")
                 
         # Strategy 3: Camelot (stream)
         if CAMELOT_AVAILABLE:
             try:
-                print(f"🔍 DEBUG: Trying Camelot stream extraction")
                 result = self._extract_with_camelot(pdf_content, page_number, flavor='stream')
                 results.append(result)
-                print(f"🔍 DEBUG: Camelot stream result - Success: {result.success}, Confidence: {result.confidence:.2f}, Tables: {len(result.tables)}")
                 if result.success and result.confidence > 0.7:
-                    print(f"🔍 DEBUG: High confidence with Camelot stream, returning early")
                     self.logger.info(f"High confidence extraction with Camelot stream: {result.confidence:.2f}")
                     return results
             except Exception as e:
-                print(f"🔍 DEBUG: Camelot stream failed: {e}")
                 self.logger.warning(f"Camelot stream extraction failed: {e}")
                 
         # Strategy 4: Tabula
         if TABULA_AVAILABLE:
             try:
-                print(f"🔍 DEBUG: Trying Tabula extraction")
                 result = self._extract_with_tabula(pdf_content, page_number)
                 results.append(result)
-                print(f"🔍 DEBUG: Tabula result - Success: {result.success}, Confidence: {result.confidence:.2f}, Tables: {len(result.tables)}")
                 if result.success and result.confidence > 0.7:
-                    print(f"🔍 DEBUG: High confidence with Tabula, returning early")
                     self.logger.info(f"High confidence extraction with Tabula: {result.confidence:.2f}")
                     return results
             except Exception as e:
-                print(f"🔍 DEBUG: Tabula failed: {e}")
                 self.logger.warning(f"Tabula extraction failed: {e}")
                 
         # Strategy 5: Enhanced OCR (last resort)
         try:
-            print(f"🔍 DEBUG: Trying Enhanced OCR extraction")
             result = self._extract_with_enhanced_ocr(pdf_content, page_number)
             results.append(result)
-            print(f"🔍 DEBUG: Enhanced OCR result - Success: {result.success}, Confidence: {result.confidence:.2f}, Tables: {len(result.tables)}")
         except Exception as e:
-            print(f"🔍 DEBUG: Enhanced OCR failed: {e}")
             self.logger.warning(f"Enhanced OCR extraction failed: {e}")
             
-        print(f"🔍 DEBUG: All extraction methods completed, returning {len(results)} results")
         return results
     
     def _extract_with_pdfplumber(self, pdf_content: bytes, page_number: int) -> TableExtractionResult:
@@ -462,33 +441,25 @@ class TableExtractor:
         
         Looks for tables containing transaction-like data patterns.
         """
-        print(f"🔍 DEBUG: Starting transaction table search")
         all_tables = []
         
         # Try extracting from each page
         pdf_file = io.BytesIO(pdf_content)
         with pdfplumber.open(pdf_file) as pdf:
-            print(f"🔍 DEBUG: PDF has {len(pdf.pages)} pages")
             for page_num in range(len(pdf.pages)):
-                print(f"🔍 DEBUG: Processing page {page_num + 1} for transaction tables")
                 results = self.extract_tables_from_pdf(pdf_content, page_num)
                 
                 # Get best result for this page
                 best_result = max(results, key=lambda x: x.confidence) if results else None
                 
                 if best_result and best_result.success:
-                    print(f"🔍 DEBUG: Page {page_num + 1} - Found {len(best_result.tables)} tables, checking for transaction patterns")
                     # Filter for transaction-like tables
                     for i, table in enumerate(best_result.tables):
                         is_transaction = self._is_transaction_table(table)
-                        print(f"🔍 DEBUG: Table {i+1} on page {page_num + 1} - Is transaction table: {is_transaction}")
                         if is_transaction:
-                            print(f"🔍 DEBUG: Adding transaction table {i+1} from page {page_num + 1} ({len(table)} rows)")
                             all_tables.append(table)
                 else:
-                    print(f"🔍 DEBUG: Page {page_num + 1} - No successful extraction results")
-                            
-        print(f"🔍 DEBUG: Found {len(all_tables)} transaction tables total")
+                    pass
         return all_tables
     
     def _is_transaction_table(self, df: pd.DataFrame) -> bool:
@@ -496,13 +467,9 @@ class TableExtractor:
         if df.empty:
             return False
             
-        print(f"🔍 DEBUG: Checking table with {len(df)} rows x {len(df.columns)} columns")
-        print(f"🔍 DEBUG: First 3 rows of table:\n{df.head(3).to_string(index=False)}")
-        
         # For image-based PDFs, be more flexible with transaction detection
         # Look for larger tables that might contain transaction data
         if len(df) >= 10 and len(df.columns) >= 3:
-            print(f"🔍 DEBUG: Large table detected ({len(df)} rows), likely contains transactions")
             return True
             
         # Look for date patterns in any column (not just first)
@@ -562,10 +529,6 @@ class TableExtractor:
         has_amounts = amount_matches > 0
         has_keywords = keyword_matches > 0
         
-        print(f"🔍 DEBUG: Date matches: {total_date_matches}/{total_cells} = {date_ratio:.2f}")
-        print(f"🔍 DEBUG: Amount matches: {amount_matches}")
-        print(f"🔍 DEBUG: Keyword matches: {keyword_matches}")
-        
         # More relaxed criteria for image-based PDFs
         is_transaction = (
             (date_ratio > 0.1) or  # 10% date patterns
@@ -574,7 +537,6 @@ class TableExtractor:
             (len(df) > 20 and len(df.columns) >= 4)  # Large table with multiple columns
         )
         
-        print(f"🔍 DEBUG: Is transaction table: {is_transaction}")
         return is_transaction
 
 

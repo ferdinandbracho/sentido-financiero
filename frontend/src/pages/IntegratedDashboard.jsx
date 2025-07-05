@@ -550,8 +550,6 @@ function StatementItem({ statement, onDelete, onProcess, isDeleting, isProcessin
             <div className="mt-1 flex items-center space-x-4 text-sm text-gray-500">
               <span>{statement.bank_name || 'Banco no identificado'}</span>
               <span>•</span>
-              <span>{formatFileSize(statement.file_size || 0)}</span>
-              <span>•</span>
               <span>Subido {formatDate(statement.upload_date, 'relative')}</span>
             </div>
           </div>
