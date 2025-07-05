@@ -477,11 +477,3 @@ We welcome contributions! Please read our [Contributing Guidelines](CONTRIBUTING
 * **Email**: [contact@SentidoFinanciero.com](mailto:contact@SentidoFinanciero.com)
 
 ---
-
-<div align="center">
-
-**Built with ❤️ for better financial insights powered by AI**
-
-[⭐ Star this repo](https://github.com/your-username/statement-sense) • [🐛 Report Bug](https://github.com/your-username/statement-sense/issues) • [💡 Request Feature](https://github.com/your-username/statement-sense/issues)
-
-</div>
