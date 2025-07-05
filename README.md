@@ -1,10 +1,10 @@
-# 🚀 SentidoFinanciero - AI-Powered Bank Statement Analyzer
+# SentidoFinanciero - AI-Powered Bank Statement Analyzer
 
 A modern, full-stack application that uses OpenAI's GPT models through LangChain to automatically categorize and analyze bank statement transactions. Upload PDF statements and get intelligent insights about your spending patterns.
 
 ![SentidoFinanciero Demo](https://via.placeholder.com/800x400/3B82F6/FFFFFF?text=SentidoFinanciero+Demo)
 
-## 🌟 Features in Detail
+## Features in Detail
 
 ### Smart Categorization
 
@@ -31,7 +31,7 @@ A modern, full-stack application that uses OpenAI's GPT models through LangChain
 * **Drag & Drop Upload**: Intuitive file upload experience
 * **Dark/Light Themes**: Comfortable viewing in any environment
 
-## 🏗 Architecture
+## Architecture
 
 ```mermaid
 graph TD
@@ -71,7 +71,7 @@ graph TD
     J -->|Use| Q
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -131,7 +131,7 @@ cp example.env .env
 ./setup.sh
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -184,7 +184,7 @@ OPENAI_MODEL=gpt-4  # For maximum accuracy
 OPENAI_MODEL=gpt-3.5-turbo  # For cost efficiency
 ```
 
-## 📚 Usage Guide
+## Usage Guide
 
 ### 1. Upload Statement
 
@@ -209,7 +209,7 @@ OPENAI_MODEL=gpt-3.5-turbo  # For cost efficiency
 3. Edit if needed (system learns from corrections)
 4. Export data for external use
 
-## 🧠 AI Categorization
+## AI Categorization
 
 ### How It Works: 3-Tier Enhanced Classification System
 
@@ -231,20 +231,20 @@ OPENAI_MODEL=gpt-3.5-turbo  # For cost efficiency
 * **Context Awareness**: GPT understands Mexican merchant names and contexts
 
 ### Supported Categories
-* 🍽️ **Alimentación** - Restaurants, groceries, convenience stores
-* ⛽ **Gasolineras** - Gas stations, fuel
-* 🔧 **Servicios** - Utilities, subscriptions, streaming
-* 🏥 **Salud** - Healthcare, pharmacies, medical
-* 🚗 **Transporte** - Uber, taxi, parking, public transport
-* 🎬 **Entretenimiento** - Movies, bars, entertainment
-* 👕 **Ropa** - Clothing, fashion, department stores
-* 📚 **Educación** - Schools, books, courses
-* 💸 **Transferencias** - Bank transfers, payments
-* 🛡️ **Seguros** - Insurance, policies
-* 📊 **Intereses/Comisiones** - Bank fees, interest
-* 📋 **Otros** - Miscellaneous
+* **Alimentación** - Restaurants, groceries, convenience stores
+* **Gasolineras** - Gas stations, fuel
+* **Servicios** - Utilities, subscriptions, streaming
+* **Salud** - Healthcare, pharmacies, medical
+* **Transporte** - Uber, taxi, parking, public transport
+* **Entretenimiento** - Movies, bars, entertainment
+* **Ropa** - Clothing, fashion, department stores
+* **Educación** - Schools, books, courses
+* **Transferencias** - Bank transfers, payments
+* **Seguros** - Insurance, policies
+* **Intereses/Comisiones** - Bank fees, interest
+* **Otros** - Miscellaneous
 
-## 🔌 API Documentation
+## API Documentation
 
 ### Core Endpoints
 
@@ -275,7 +275,7 @@ curl "http://localhost:8000/api/v1/statements/{id}/analysis"
 
 Full API documentation available at: `http://localhost:8000/docs`
 
-## 🛠 Development
+## Development
 
 ### Project Structure
 ```
@@ -328,7 +328,7 @@ npm test
 npm run test:e2e
 ```
 
-## 🐳 Docker Services
+## Docker Services
 
 | Service | Port | Description |
 |---------|------|-------------|
@@ -354,7 +354,7 @@ docker-compose down
 docker-compose up --build
 ```
 
-## 💰 Cost Considerations
+## Cost Considerations
 
 ### OpenAI API Costs (Estimated)
 
@@ -364,7 +364,7 @@ docker-compose up --build
 * **~$0.001-0.003 per complex transaction**
 
 **GPT-4:**
-* Input: $0.01 / 1K tokens  
+* Input: $0.01 / 1K tokens
 * Output: $0.03 / 1K tokens
 * **~$0.01-0.03 per complex transaction**
 
@@ -380,7 +380,7 @@ docker-compose up --build
 * GPT-3.5-turbo: ~$0.08-0.23/month
 * GPT-4: ~$0.75-2.25/month
 
-## 🔍 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -417,7 +417,7 @@ curl -H "Authorization: Bearer $OPENAI_API_KEY" \
      https://api.openai.com/v1/usage
 ```
 
-## 🚀 Production Deployment
+## Production Deployment
 
 ### Environment Setup
 1. Use production OpenAI API key with proper limits
@@ -441,7 +441,7 @@ docker-compose -f docker-compose.prod.yml up -d
 * Set up load balancing
 * Implement OpenAI response caching
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Please read our [Contributing Guidelines](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
 
@@ -459,7 +459,7 @@ We welcome contributions! Please read our [Contributing Guidelines](CONTRIBUTING
 * Use conventional commit messages
 * Test with both GPT-3.5-turbo and GPT-4
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 * **OpenAI** - GPT models for intelligent categorization
 * **LangChain** - Simplified LLM integration framework
@@ -469,7 +469,7 @@ We welcome contributions! Please read our [Contributing Guidelines](CONTRIBUTING
 * **Chart.js** - Data visualization
 * **PostgreSQL** - Database system
 
-## 📞 Support
+## Support
 
 * **Documentation**: Check the `/docs` endpoints
 * **Issues**: Report bugs via GitHub Issues
