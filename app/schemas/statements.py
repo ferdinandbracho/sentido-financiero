@@ -176,14 +176,19 @@ class StatementListResponse(BaseModel):
 class StatementDetailResponse(BaseModel):
     """Response for statement detail view."""
 
+    id: int  # For frontend compatibility  
     statement_id: int
     filename: str
     upload_date: datetime
     bank_name: Optional[str]
     customer_name: Optional[str]
     statement_period: Optional[str]
+    statement_period_start: Optional[datetime]
+    statement_period_end: Optional[datetime]
     total_transactions: int
     total_amount: Optional[Decimal]
+    total_debits: Optional[Decimal]
+    total_credits: Optional[Decimal]
     extraction_method: ExtractionMethod
     confidence: float
     transactions: List[Transaction]
@@ -226,6 +231,38 @@ class AnalysisResponse(BaseModel):
     spending_analysis: Optional[SpendingAnalysis] = None
     insights: List[str] = []
     confidence: float = Field(ge=0.0, le=1.0)
+
+    class Config:
+        from_attributes = True
+
+
+# Bulk Operations Schemas
+class BulkDeleteRequest(BaseModel):
+    """Request for bulk delete operations."""
+
+    statement_ids: List[int] = Field(..., min_items=1, max_items=100)
+
+    class Config:
+        from_attributes = True
+
+
+class BulkDownloadRequest(BaseModel):
+    """Request for bulk download operations."""
+
+    statement_ids: List[int] = Field(..., min_items=1, max_items=50)
+
+    class Config:
+        from_attributes = True
+
+
+class BulkOperationResponse(BaseModel):
+    """Response for bulk operations."""
+
+    success: bool
+    message: str
+    processed_count: int
+    failed_count: int
+    failed_ids: List[int] = []
 
     class Config:
         from_attributes = True

@@ -726,22 +726,41 @@ class MexicanStatementParser:
             )
             messages = prompt.format_messages()
             response = self.llm_client.invoke(messages)
-
-            # Extract JSON from response
+            
+            # Clean and validate the response
+            response = response.strip()
+            
+            # Try to extract JSON from response
             json_match = re.search(r"\{.*\}", response, re.DOTALL)
             if not json_match:
                 self.logger.error("LLM batch response missing JSON: %s", response)
                 return {}
-
-            parsed = json.loads(json_match.group(0))
-            result: Dict[str, str] = {}
-            for desc, cat in parsed.items():
-                cat_lower = cat.lower() if isinstance(cat, str) else "otros"
-                if cat_lower not in valid_categories:
-                    cat_lower = "otros"
-                result[desc] = cat_lower
-
-            return result
+                
+            json_str = json_match.group(0)
+            
+            # Try to parse the JSON
+            try:
+                parsed = json.loads(json_str)
+                if not isinstance(parsed, dict):
+                    raise ValueError("Response is not a JSON object")
+                    
+                result: Dict[str, str] = {}
+                for desc, cat in parsed.items():
+                    if not isinstance(desc, str) or not isinstance(cat, str):
+                        continue
+                        
+                    cat_lower = cat.lower().strip()
+                    if cat_lower not in valid_categories:
+                        cat_lower = "otros"
+                    result[desc] = cat_lower
+                
+                return result
+                
+            except json.JSONDecodeError as e:
+                self.logger.error("Failed to parse LLM response as JSON: %s", e)
+                self.logger.debug("Raw response: %s", response)
+                return {}
+                
         except Exception as exc:
             self.logger.error("Error in batch LLM categorization: %s", exc, exc_info=True)
             return {}
@@ -819,7 +838,10 @@ class MexicanStatementParser:
         self.logger.info("Starting Mexican statement parsing")
 
         # Check if this looks like a Mexican statement
-        if not re.search(MEXICAN_PATTERNS["payment_section"], text):
+        # For OCR-extracted table format, use more flexible validation
+        is_mexican_format = self._validate_mexican_format(text)
+        
+        if not is_mexican_format:
             self.logger.warning(
                 "Statement does not appear to follow Mexican CONDUSEF format"
             )

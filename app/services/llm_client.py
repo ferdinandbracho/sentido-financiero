@@ -55,17 +55,50 @@ class LLMClient:
         """Check if the LLM client is properly configured and available."""
         return self.llm is not None
 
-    def invoke(self, messages):
-        """Send chat messages to the model and return the raw assistant text."""
+    def invoke(self, messages, max_retries=3):
+        """Send chat messages to the model and return the assistant's response.
+        
+        Args:
+            messages: List of message dictionaries with 'role' and 'content'.
+            max_retries: Maximum number of retry attempts on failure.
+            
+        Returns:
+            str: The model's response text.
+            
+        Raises:
+            RuntimeError: If the LLM client is not available or all retries fail.
+        """
         if not self.is_available():
             raise RuntimeError("LLMClient not available")
-        try:
-            response = self.llm.invoke(messages)
-            # ChatOpenAI returns a BaseMessage; grab its content attribute if present.
-            return getattr(response, "content", str(response))
-        except Exception as exc:
-            logger.error("LLM invocation failed: %s", exc, exc_info=True)
-            raise
+            
+        last_exception = None
+        
+        for attempt in range(max_retries):
+            try:
+                response = self.llm.invoke(messages)
+                # Get the content from the response
+                content = getattr(response, "content", str(response))
+                
+                # Log the response for debugging
+                logger.debug("LLM response (attempt %d/%d): %s", 
+                           attempt + 1, max_retries, content)
+                
+                return content
+                
+            except Exception as exc:
+                last_exception = exc
+                wait_time = (attempt + 1) * 2  # Exponential backoff
+                logger.warning(
+                    "LLM invocation failed (attempt %d/%d): %s. Retrying in %ds...",
+                    attempt + 1, max_retries, str(exc), wait_time
+                )
+                import time
+                time.sleep(wait_time)
+        
+        # If we get here, all retries failed
+        error_msg = f"LLM invocation failed after {max_retries} attempts"
+        logger.error("%s: %s", error_msg, str(last_exception), exc_info=True)
+        raise RuntimeError(f"{error_msg}: {str(last_exception)}")
 
 
 if __name__ == "__main__":

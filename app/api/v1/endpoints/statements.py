@@ -13,7 +13,15 @@ from decimal import Decimal
 from typing import Optional
 
 # Third-party imports
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Response,
+    UploadFile,
+    status,
+)
 from sqlalchemy.orm import Session
 
 # Local application imports
@@ -21,15 +29,18 @@ from app.config import settings
 from app.db.session import get_db
 from app.models.statement import (
     BankStatement,
+    ExtractionMethodEnum,
     LogLevelEnum,
     ProcessingLog,
+    ProcessingStatusEnum,
     Transaction,
     TransactionCategoryEnum,
     TransactionTypeEnum,
-    ProcessingStatusEnum,
-    ExtractionMethodEnum,
 )
 from app.schemas.statements import (
+    BulkDeleteRequest,
+    BulkDownloadRequest,
+    BulkOperationResponse,
     ErrorResponse,
     ExtractionMethod,
     StatementDetailResponse,
@@ -37,6 +48,7 @@ from app.schemas.statements import (
     StatementUploadResponse,
     TransactionType,
 )
+from sqlalchemy import func
 from app.services.pdf_parser import pdf_processor
 
 logger = settings.get_logger(__name__)
@@ -44,6 +56,44 @@ router = APIRouter()
 
 # File upload constraints
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
+
+# Month names in Spanish
+MONTH_NAMES = {
+    1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio",
+    7: "Julio", 8: "Agosto", 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+}
+
+def generate_formatted_filename(bank_name: str, statement_period_start) -> str:
+    """
+    Generate a formatted filename based on bank name and statement period.
+    Format: "Bank - Month Year" (e.g., "BBVA - Abril 2025")
+    """
+    if not bank_name or not statement_period_start:
+        return None
+    
+    # Extract month and year from statement_period_start
+    month = statement_period_start.month
+    year = statement_period_start.year
+    
+    # Format: "BANK - Month Year"
+    month_name = MONTH_NAMES.get(month, "Desconocido")
+    return f"{bank_name.upper()} - {month_name} {year}"
+
+def check_duplicate_statement(db: Session, bank_name: str, statement_period_start) -> Optional[BankStatement]:
+    """
+    Check if a statement with the same bank and period already exists.
+    Returns the existing statement if found, None otherwise.
+    """
+    if not bank_name or not statement_period_start:
+        return None
+    
+    # Check for existing statement with same bank and period start
+    existing_statement = db.query(BankStatement).filter(
+        func.lower(BankStatement.bank_name) == func.lower(bank_name),
+        func.date(BankStatement.statement_period_start) == func.date(statement_period_start)
+    ).first()
+    
+    return existing_statement
 
 
 @router.get(
@@ -80,10 +130,14 @@ def validate_upload_file(file: UploadFile) -> None:
     ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File type not supported. Allowed extensions: {', '.join(ALLOWED_EXTENSIONS)}",
+            detail=(
+                f"File type not supported. Allowed extensions: "
+                f"{', '.join(ALLOWED_EXTENSIONS)}"
+            ),
         )
 
-    # Note: file.size is not always available, so we'll check size during processing
+    # Note: file.size is not always available, so we'll check size during
+    # processing
 
 
 @router.post(
@@ -91,7 +145,9 @@ def validate_upload_file(file: UploadFile) -> None:
     response_model=StatementUploadResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Upload and process credit card statement",
-    description="Upload a PDF credit card statement for processing and analysis",
+    description=(
+        "Upload a PDF credit card statement for processing and analysis"
+    ),
 )
 async def upload_statement(
     file: UploadFile = File(..., description="PDF statement file"),
@@ -116,7 +172,10 @@ async def upload_statement(
         if file_size > MAX_FILE_SIZE:
             raise HTTPException(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail=f"File too large. Maximum size: {MAX_FILE_SIZE // (1024 * 1024)}MB",
+                detail=(
+                    f"File too large. Maximum size: "
+                    f"{MAX_FILE_SIZE // (1024 * 1024)}MB"
+                ),
             )
 
         if file_size == 0:
@@ -189,6 +248,33 @@ async def upload_statement(
             db_statement.credit_limit = meta.get("credit_limit")
             db_statement.available_credit = meta.get("available_credit")
             db_statement.total_balance = meta.get("total_balance")
+            
+            # Check for duplicate statement
+            bank_name = meta.get("bank_name")
+            period_start = meta.get("period_start")
+            
+            if bank_name and period_start:
+                existing_statement = check_duplicate_statement(db, bank_name, period_start)
+                if existing_statement:
+                    # Generate formatted name for the error message
+                    formatted_name = generate_formatted_filename(bank_name, period_start)
+                    fallback_name = f"{bank_name} - {period_start.strftime('%B %Y')}"
+                    display_name = formatted_name or fallback_name
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail={
+                            "error": "duplicate_statement",
+                            "message": f"Ya existe un estado de cuenta para {display_name}",
+                            "existing_statement_id": existing_statement.id,
+                            "formatted_name": formatted_name
+                        }
+                    )
+                
+                # Auto-rename the file with the formatted name
+                formatted_filename = generate_formatted_filename(bank_name, period_start)
+                if formatted_filename:
+                    db_statement.filename = formatted_filename
+                    logger.info(f"Auto-renamed statement to: {formatted_filename}")
 
             # Add transactions if available
             if "transactions" in extraction_result:
@@ -307,70 +393,6 @@ async def list_statements(
         total = query.count()
         statements = query.offset(offset).limit(per_page).all()
 
-        # Convert statements to response models
-        statement_responses = []
-        for statement in statements:
-            # Calculate total amount from transactions if available
-            total_amount = None
-            total_transactions = 0
-            if hasattr(statement, "transactions") and statement.transactions:
-                total_amount = sum(
-                    float(tx.amount)
-                    for tx in statement.transactions
-                    if tx.amount is not None
-                )
-                total_transactions = len(statement.transactions)
-
-            # Format statement period if available
-            statement_period = None
-            if (
-                statement.statement_period_start
-                and statement.statement_period_end
-            ):
-                start = statement.statement_period_start.strftime("%Y-%m-%d")
-                end = statement.statement_period_end.strftime("%Y-%m-%d")
-                statement_period = f"{start} to {end}"
-
-            # Map transaction types from database to schema
-            mapped_transactions = []
-            for tx in statement.transactions or []:
-                # Create a copy of the transaction
-                tx_dict = {
-                    "operation_date": tx.operation_date,
-                    "charge_date": tx.charge_date,
-                    "description": tx.description,
-                    "amount": tx.amount,
-                    "category": tx.category,
-                    # Map transaction type from database to schema
-                    "transaction_type": TransactionType.DEBIT
-                    if tx.transaction_type == TransactionTypeEnum.CARGO
-                    else TransactionType.CREDIT,
-                }
-                mapped_transactions.append(tx_dict)
-
-            # Create response model
-            response = StatementDetailResponse(
-                statement_id=statement.id,
-                filename=statement.filename,
-                upload_date=statement.upload_date,
-                bank_name=statement.bank_name,
-                customer_name=statement.customer_name,
-                statement_period=statement_period,
-                total_transactions=total_transactions,
-                total_amount=(
-                    Decimal(str(total_amount))
-                    if total_amount is not None
-                    else None
-                ),
-                extraction_method=(
-                    statement.extraction_method
-                    or ExtractionMethod.MEXICAN_TEMPLATE
-                ),
-                confidence=statement.overall_confidence or 0.0,
-                transactions=mapped_transactions,
-            )
-            statement_responses.append(response)
-
         # Convert statements to dictionaries
         statements_list = []
         for stmt in statements:
@@ -417,7 +439,8 @@ async def list_statements(
                 transactions_list.append(tx_dict)
 
             stmt_dict = {
-                "statement_id": stmt.id,
+                "id": stmt.id,  # For frontend compatibility
+                "statement_id": stmt.id,  # For API clarity
                 "filename": stmt.filename,
                 "upload_date": stmt.upload_date,
                 "bank_name": stmt.bank_name,
@@ -467,12 +490,104 @@ async def get_statement_detail(
     """
 
     try:
-        # TODO: Implement database query once models are ready
-        # For now, return not found
+        # Query the database for the statement
+        statement = (
+            db.query(BankStatement)
+            .filter(BankStatement.id == statement_id)
+            .first()
+        )
+        
+        if not statement:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Statement with ID {statement_id} not found",
+            )
 
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Statement with ID {statement_id} not found",
+        # Calculate totals from transactions if available
+        total_amount = None
+        total_debits = None
+        total_credits = None
+        total_transactions = 0
+        
+        if hasattr(statement, "transactions") and statement.transactions:
+            total_transactions = len(statement.transactions)
+            
+            # Calculate separate totals for credits and debits
+            credits_total = sum(
+                float(tx.amount)
+                for tx in statement.transactions
+                if tx.amount is not None and tx.transaction_type == TransactionTypeEnum.ABONO
+            )
+            debits_total = sum(
+                abs(float(tx.amount))  # Make debits positive for display
+                for tx in statement.transactions
+                if tx.amount is not None and tx.transaction_type == TransactionTypeEnum.CARGO
+            )
+            
+            total_credits = credits_total
+            total_debits = debits_total
+            total_amount = credits_total + debits_total  # Net amount
+
+        # Format statement period if available
+        statement_period = None
+        if (
+            statement.statement_period_start
+            and statement.statement_period_end
+        ):
+            start = statement.statement_period_start.strftime("%Y-%m-%d")
+            end = statement.statement_period_end.strftime("%Y-%m-%d")
+            statement_period = f"{start} to {end}"
+
+        # Map transaction types from database to schema
+        mapped_transactions = []
+        for tx in statement.transactions or []:
+            # Create a copy of the transaction
+            tx_dict = {
+                "operation_date": tx.operation_date,
+                "charge_date": tx.charge_date,
+                "description": tx.description,
+                "amount": tx.amount,
+                "category": tx.category,
+                # Map transaction type from database to schema
+                "transaction_type": TransactionType.DEBIT
+                if tx.transaction_type == TransactionTypeEnum.CARGO
+                else TransactionType.CREDIT,
+            }
+            mapped_transactions.append(tx_dict)
+
+        # Create and return the response
+        return StatementDetailResponse(
+            id=statement.id,  # For frontend compatibility
+            statement_id=statement.id,
+            filename=statement.filename,
+            upload_date=statement.upload_date,
+            bank_name=statement.bank_name,
+            customer_name=statement.customer_name,
+            statement_period=statement_period,
+            statement_period_start=statement.statement_period_start,
+            statement_period_end=statement.statement_period_end,
+            total_transactions=total_transactions,
+            total_amount=(
+                Decimal(str(total_amount))
+                if total_amount is not None
+                else None
+            ),
+            total_debits=(
+                Decimal(str(total_debits))
+                if total_debits is not None
+                else None
+            ),
+            total_credits=(
+                Decimal(str(total_credits))
+                if total_credits is not None
+                else None
+            ),
+            extraction_method=(
+                statement.extraction_method
+                or ExtractionMethod.MEXICAN_TEMPLATE
+            ),
+            confidence=statement.overall_confidence or 0.0,
+            transactions=mapped_transactions,
         )
 
     except HTTPException:
@@ -499,13 +614,30 @@ async def delete_statement(statement_id: int, db: Session = Depends(get_db)):
     """
 
     try:
-        # TODO: Implement database deletion once models are ready
-        # For now, return not found
-
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Statement with ID {statement_id} not found",
+        # Query the database for the statement
+        statement = (
+            db.query(BankStatement)
+            .filter(BankStatement.id == statement_id)
+            .first()
         )
+        
+        if not statement:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Statement with ID {statement_id} not found",
+            )
+
+        # Delete the statement (cascading deletes will handle related records)
+        db.delete(statement)
+        db.commit()
+        
+        logger.info(
+            f"Successfully deleted statement {statement_id}: "
+            f"{statement.filename}"
+        )
+        
+        # Return 204 No Content (successful deletion)
+        return
 
     except HTTPException:
         raise
@@ -520,7 +652,10 @@ async def delete_statement(statement_id: int, db: Session = Depends(get_db)):
 @router.post(
     "/test-parsing",
     summary="Test statement parsing",
-    description="Test the Mexican template parser with a PDF file (development endpoint)",
+    description=(
+        "Test the Mexican template parser with a PDF file "
+        "(development endpoint)"
+    ),
 )
 async def test_parsing(
     file: UploadFile = File(..., description="PDF statement file for testing"),
@@ -566,4 +701,372 @@ async def test_parsing(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal error: {str(e)}",
+        )
+
+
+@router.post(
+    "/bulk-delete",
+    response_model=BulkOperationResponse,
+    summary="Bulk delete statements",
+    description="Delete multiple statements at once",
+)
+async def bulk_delete_statements(
+    request: BulkDeleteRequest, db: Session = Depends(get_db)
+) -> BulkOperationResponse:
+    """
+    Delete multiple statements at once.
+
+    - **statement_ids**: List of statement IDs to delete (max 100)
+    """
+
+    try:
+        processed_count = 0
+        failed_count = 0
+        failed_ids = []
+
+        # Validate input
+        if not request.statement_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No statement IDs provided",
+            )
+
+        logger.info(
+            f"Starting bulk delete for {len(request.statement_ids)} statements"
+        )
+
+        # Process each statement ID
+        for statement_id in request.statement_ids:
+            try:
+                # Query the database for the statement
+                statement = (
+                    db.query(BankStatement)
+                    .filter(BankStatement.id == statement_id)
+                    .first()
+                )
+
+                if not statement:
+                    logger.warning(f"Statement {statement_id} not found")
+                    failed_count += 1
+                    failed_ids.append(statement_id)
+                    continue
+
+                # Delete the statement
+                filename = statement.filename  # Store for logging
+                db.delete(statement)
+                processed_count += 1
+
+                logger.debug(f"Deleted statement {statement_id}: {filename}")
+
+            except Exception as e:
+                logger.error(f"Error deleting statement {statement_id}: {e}")
+                failed_count += 1
+                failed_ids.append(statement_id)
+                # Continue with other statements rather than failing completely
+
+        # Commit all deletions at once
+        if processed_count > 0:
+            db.commit()
+            logger.info(f"Successfully deleted {processed_count} statements")
+        else:
+            logger.warning("No statements were deleted")
+
+        # Prepare response
+        success = processed_count > 0
+        if failed_count == 0:
+            message = f"Successfully deleted {processed_count} statements"
+        elif processed_count == 0:
+            message = f"Failed to delete all {failed_count} statements"
+        else:
+            message = (
+                f"Deleted {processed_count} statements, "
+                f"failed to delete {failed_count}"
+            )
+
+        return BulkOperationResponse(
+            success=success,
+            message=message,
+            processed_count=processed_count,
+            failed_count=failed_count,
+            failed_ids=failed_ids,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in bulk delete operation: {e}")
+        db.rollback()  # Rollback in case of error
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal error during bulk delete operation",
+        )
+
+
+@router.get(
+    "/{statement_id}/transactions",
+    response_model=list,
+    summary="Get statement transactions",
+    description="Retrieve all transactions for a specific statement",
+)
+async def get_statement_transactions(
+    statement_id: int, db: Session = Depends(get_db)
+):
+    """
+    Get all transactions for a specific statement.
+
+    - **statement_id**: ID of the statement to retrieve transactions for
+    """
+    try:
+        # Query the database for the statement
+        statement = (
+            db.query(BankStatement)
+            .filter(BankStatement.id == statement_id)
+            .first()
+        )
+        
+        if not statement:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Statement with ID {statement_id} not found",
+            )
+
+        # Map transactions to API format
+        transactions = []
+        for tx in statement.transactions or []:
+            tx_dict = {
+                "id": tx.id,
+                "operation_date": tx.operation_date,
+                "charge_date": tx.charge_date,
+                "transaction_date": tx.operation_date,  # For frontend compatibility
+                "description": tx.description,
+                "amount": float(tx.amount) if tx.amount else 0.0,
+                "transaction_type": (
+                    "debit" if tx.transaction_type == TransactionTypeEnum.CARGO
+                    else "credit"
+                ),
+                "category": tx.category,
+                "original_category": tx.original_category,
+                "categorization_confidence": tx.categorization_confidence,
+                "categorization_method": "auto"  # Default value
+            }
+            transactions.append(tx_dict)
+
+        return transactions
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error retrieving transactions for statement {statement_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal error retrieving transactions",
+        )
+
+
+@router.get(
+    "/{statement_id}/analysis",
+    response_model=dict,
+    summary="Get statement analysis",
+    description="Retrieve analysis data for a specific statement",
+)
+async def get_statement_analysis(
+    statement_id: int, db: Session = Depends(get_db)
+):
+    """
+    Get analysis data for a specific statement.
+
+    - **statement_id**: ID of the statement to retrieve analysis for
+    """
+    try:
+        # Query the database for the statement
+        statement = (
+            db.query(BankStatement)
+            .filter(BankStatement.id == statement_id)
+            .first()
+        )
+        
+        if not statement:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Statement with ID {statement_id} not found",
+            )
+
+        # Calculate analysis data
+        transactions = statement.transactions or []
+        
+        # Basic totals
+        total_transactions = len(transactions)
+        total_debits = sum(
+            float(tx.amount) for tx in transactions
+            if tx.transaction_type == TransactionTypeEnum.CARGO and tx.amount
+        )
+        total_credits = sum(
+            float(tx.amount) for tx in transactions
+            if tx.transaction_type == TransactionTypeEnum.ABONO and tx.amount
+        )
+        net_amount = total_credits - total_debits
+        
+        # Category analysis
+        categories = {}
+        for tx in transactions:
+            category = tx.category or TransactionCategoryEnum.OTROS
+            if category not in categories:
+                categories[category] = {
+                    "category": category,
+                    "transaction_count": 0,
+                    "total_amount": 0.0,
+                    "transactions": []
+                }
+            
+            categories[category]["transaction_count"] += 1
+            categories[category]["total_amount"] += float(tx.amount) if tx.amount else 0.0
+            categories[category]["transactions"].append(tx)
+
+        # Calculate averages and percentages
+        category_list = []
+        for category, data in categories.items():
+            category_data = {
+                "category": category,
+                "transaction_count": data["transaction_count"],
+                "total_amount": data["total_amount"],
+                "average_amount": (
+                    data["total_amount"] / data["transaction_count"]
+                    if data["transaction_count"] > 0 else 0.0
+                ),
+                "percentage_of_total": (
+                    (data["total_amount"] / abs(total_debits)) * 100
+                    if total_debits != 0 else 0.0
+                )
+            }
+            category_list.append(category_data)
+
+        # Sort categories by total amount (descending)
+        category_list.sort(key=lambda x: x["total_amount"], reverse=True)
+
+        analysis = {
+            "total_transactions": total_transactions,
+            "total_debits": total_debits,
+            "total_credits": total_credits,
+            "net_amount": net_amount,
+            "categories": category_list,
+            "statement_id": statement_id
+        }
+
+        return analysis
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error retrieving analysis for statement {statement_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal error retrieving analysis",
+        )
+
+
+@router.post(
+    "/bulk-download",
+    summary="Bulk download statements",
+    description="Download multiple statements data as CSV",
+)
+async def bulk_download_statements(
+    request: BulkDownloadRequest, db: Session = Depends(get_db)
+):
+    """
+    Download multiple statements data as CSV.
+
+    - **statement_ids**: List of statement IDs to download (max 50)
+    """
+
+    try:
+        # Validate input
+        if not request.statement_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No statement IDs provided",
+            )
+
+        logger.info(
+            f"Starting bulk download for {len(request.statement_ids)} "
+            f"statements"
+        )
+
+        # Query statements
+        statements = (
+            db.query(BankStatement)
+            .filter(BankStatement.id.in_(request.statement_ids))
+            .all()
+        )
+
+        if not statements:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No statements found with the provided IDs",
+            )
+
+        # Create CSV content
+        csv_content = (
+            "ID,Filename,Bank Name,Customer Name,Upload Date,"
+            "Period Start,Period End,Total Transactions,Total Amount,Status\n"
+        )
+        
+        for stmt in statements:
+            # Format data for CSV
+            upload_date = (
+                stmt.upload_date.strftime("%Y-%m-%d %H:%M:%S")
+                if stmt.upload_date else ""
+            )
+            period_start = (
+                stmt.statement_period_start.strftime("%Y-%m-%d")
+                if stmt.statement_period_start else ""
+            )
+            period_end = (
+                stmt.statement_period_end.strftime("%Y-%m-%d")
+                if stmt.statement_period_end else ""
+            )
+            
+            # Calculate total transactions and amount
+            total_transactions = (
+                len(stmt.transactions) if stmt.transactions else 0
+            )
+            total_amount = sum(
+                float(tx.amount) for tx in (stmt.transactions or []) 
+                if tx.amount is not None
+            )
+            
+            # Escape commas in text fields
+            bank_name = (stmt.bank_name or "").replace(",", ";")
+            customer_name = (stmt.customer_name or "").replace(",", ";")
+            filename = (stmt.filename or "").replace(",", ";")
+            
+            csv_content += (
+                f"{stmt.id},{filename},{bank_name},{customer_name},"
+                f"{upload_date},{period_start},{period_end},"
+                f"{total_transactions},{total_amount:.2f},"
+                f"{stmt.processing_status or 'unknown'}\n"
+            )
+
+        # Generate filename
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"statements_export_{timestamp}.csv"
+
+        logger.info(f"Generated CSV for {len(statements)} statements")
+
+        # Return CSV file
+        return Response(
+            content=csv_content,
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}"
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in bulk download operation: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal error during bulk download operation",
         )

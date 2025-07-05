@@ -7,20 +7,16 @@ import { Upload } from './pages/Upload'
 
 function App() {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-nord-0 transition-colors duration-200">
+    <div className="min-h-screen transition-colors duration-200">
       <ErrorBoundary fallbackMessage="La aplicación ha encontrado un problema. Por favor, recarga la página.">
         <Router>
           <Layout>
-            <div className="py-6">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <Routes>
-                  <Route path="/" element={<IntegratedDashboard />} />
-                  <Route path="/upload" element={<Upload />} />
-                  <Route path="/statements" element={<Navigate to="/" replace />} />
-                  <Route path="/statements/:id" element={<StatementDetail />} />
-                </Routes>
-              </div>
-            </div>
+            <Routes>
+              <Route path="/" element={<IntegratedDashboard />} />
+              <Route path="/upload" element={<Upload />} />
+              <Route path="/statements" element={<Navigate to="/" replace />} />
+              <Route path="/statements/:id" element={<StatementDetail />} />
+            </Routes>
           </Layout>
         </Router>
       </ErrorBoundary>

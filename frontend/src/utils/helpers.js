@@ -276,6 +276,16 @@ export const getConfidenceDescription = (confidence) => {
  * user-friendly display names like "BBVA - Junio 2025"
  */
 export const formatStatementName = (statement) => {
+  // Guard clause: if statement is null or undefined, return fallback
+  if (!statement) {
+    return 'Estado de Cuenta'
+  }
+  
+  // If the filename is already in the auto-renamed format "BANK - Month Year", return it as is
+  if (statement.filename && statement.filename.match(/^[A-Z]+ - [A-Za-z]+ \d{4}$/)) {
+    return statement.filename
+  }
+  
   // If we have bank name and statement period, use those
   if (statement.bank_name && statement.statement_period_start) {
     const date = new Date(statement.statement_period_start)
@@ -285,6 +295,10 @@ export const formatStatementName = (statement) => {
   }
   
   // Try to parse from filename if in the format bank_YYYYMM_originalname.pdf
+  if (!statement.filename) {
+    return 'Estado de Cuenta Sin Nombre'
+  }
+  
   const filenameMatch = statement.filename.match(/^([a-z_]+)_(\d{6})_.*\.pdf$/i)
   if (filenameMatch) {
     const [, bankSlug, yearMonth] = filenameMatch
@@ -296,6 +310,7 @@ export const formatStatementName = (statement) => {
     return `${bankName} - ${capitalize(monthName)} ${year}`
   }
   
-  // Fallback to original filename
-  return statement.filename
+  // Fallback to original filename (remove .pdf extension if present)
+  const displayName = statement.filename.replace(/\.pdf$/i, '')
+  return displayName
 }

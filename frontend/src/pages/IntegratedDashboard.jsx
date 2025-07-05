@@ -15,12 +15,16 @@ import {
   Search,
   Filter,
   RefreshCw,
-  MoreVertical
+  MoreVertical,
+  Check,
+  Minus
 } from 'lucide-react'
 import { 
   useStatements, 
   useDeleteStatement, 
-  useProcessStatement 
+  useProcessStatement,
+  useBulkDeleteStatements,
+  useBulkDownloadStatements
 } from '../hooks/useStatements'
 import { 
   formatFileSize, 
@@ -30,19 +34,32 @@ import {
   formatStatementName 
 } from '../utils/helpers'
 import { clsx } from 'clsx'
+import ConfirmationModal from '../components/ConfirmationModal'
 
 export default function IntegratedDashboard() {
   // State for filtering and sorting
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
   const [sortBy, setSortBy] = useState('upload_date')
   const [sortOrder, setSortOrder] = useState('desc')
   const [openMenuId, setOpenMenuId] = useState(null)
+  
+  // State for bulk operations
+  const [selectedStatements, setSelectedStatements] = useState(new Set())
+  const [isSelectionMode, setIsSelectionMode] = useState(false)
+
+  // State for delete confirmation modal
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    id: null,
+    isBulk: false,
+  })
   
   // Fetch data and mutations
   const { data: statements = [], isLoading, error, refetch } = useStatements()
   const deleteStatement = useDeleteStatement()
   const processStatement = useProcessStatement()
+  const bulkDeleteStatements = useBulkDeleteStatements()
+  const bulkDownloadStatements = useBulkDownloadStatements()
   const navigate = useNavigate()
   
   // Handle dropdown menu toggle
@@ -70,10 +87,9 @@ export default function IntegratedDashboard() {
   // Filter and sort statements
   const filteredStatements = statements
     .filter(statement => {
-      const matchesSearch = statement.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (statement.bank_name && statement.bank_name.toLowerCase().includes(searchTerm.toLowerCase()))
-      const matchesStatus = statusFilter === 'all' || statement.processing_status === statusFilter
-      return matchesSearch && matchesStatus
+      return searchTerm === '' || 
+        statement.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (statement.bank_name && statement.bank_name.toLowerCase().includes(searchTerm.toLowerCase()))
     })
     .sort((a, b) => {
       let aVal = a[sortBy]
@@ -105,14 +121,27 @@ export default function IntegratedDashboard() {
     .slice(0, 5)
 
   // Action handlers
-  const handleDelete = async (id) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar este estado de cuenta?')) {
-      try {
+  const onConfirmDelete = async () => {
+    const { id, isBulk } = deleteModal
+
+    try {
+      if (isBulk) {
+        const selectedIds = Array.from(selectedStatements)
+        await bulkDeleteStatements.mutateAsync(selectedIds)
+        setSelectedStatements(new Set())
+        setIsSelectionMode(false)
+      } else {
         await deleteStatement.mutateAsync(id)
-      } catch (error) {
-        console.error('Error deleting statement:', error)
       }
+    } catch (error) {
+      console.error('Error during deletion:', error)
+    } finally {
+      setDeleteModal({ isOpen: false, id: null, isBulk: false })
     }
+  }
+
+  const handleDelete = (id) => {
+    setDeleteModal({ isOpen: true, id, isBulk: false })
   }
 
   const handleProcess = async (id) => {
@@ -122,6 +151,55 @@ export default function IntegratedDashboard() {
       console.error('Error processing statement:', error)
     }
   }
+
+  // Bulk operation handlers
+  const toggleStatementSelection = (statementId) => {
+    const newSelected = new Set(selectedStatements)
+    if (newSelected.has(statementId)) {
+      newSelected.delete(statementId)
+    } else {
+      newSelected.add(statementId)
+    }
+    setSelectedStatements(newSelected)
+  }
+
+  const selectAllStatements = () => {
+    const allIds = new Set(filteredStatements.map(s => s.id))
+    setSelectedStatements(allIds)
+  }
+
+  const deselectAllStatements = () => {
+    setSelectedStatements(new Set())
+  }
+
+  const toggleSelectionMode = () => {
+    setIsSelectionMode(!isSelectionMode)
+    if (isSelectionMode) {
+      setSelectedStatements(new Set())
+    }
+  }
+
+  const handleBulkDelete = () => {
+    if (selectedStatements.size === 0) return
+    setDeleteModal({ isOpen: true, id: null, isBulk: true })
+  }
+
+  const handleBulkDownload = async () => {
+    const selectedIds = Array.from(selectedStatements)
+    if (selectedIds.length === 0) return
+
+    try {
+      await bulkDownloadStatements.mutateAsync(selectedIds)
+    } catch (error) {
+      console.error('Error in bulk download:', error)
+    }
+  }
+
+  // Check if all visible statements are selected
+  const allVisible = filteredStatements.length > 0
+  const allSelected = allVisible && filteredStatements.every(s => selectedStatements.has(s.id))
+  const someSelected = selectedStatements.size > 0
+  const indeterminate = someSelected && !allSelected
 
   // Error state
   if (error) {
@@ -164,18 +242,12 @@ export default function IntegratedDashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
         <StatCard
           title="Total de Estados"
           value={stats.totalStatements}
           icon={FileText}
           color="blue"
-        />
-        <StatCard
-          title="Procesados"
-          value={stats.processed}
-          icon={CheckCircle}
-          color="green"
         />
         <StatCard
           title="Total Transacciones"
@@ -209,23 +281,8 @@ export default function IntegratedDashboard() {
               </div>
             </div>
 
-            {/* Filters */}
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Filter className="h-4 w-4 text-gray-400" />
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="input w-auto"
-                >
-                  <option value="all">Todos los estados</option>
-                  <option value="uploaded">Subidos</option>
-                  <option value="processing">Procesando</option>
-                  <option value="processed">Procesados</option>
-                  <option value="failed">Con errores</option>
-                </select>
-              </div>
-
+            {/* Sort */}
+            <div className="flex items-center">
               <select
                 value={`${sortBy}-${sortOrder}`}
                 onChange={(e) => {
@@ -268,18 +325,18 @@ export default function IntegratedDashboard() {
           <div className="px-6 py-12 text-center">
             <FileText className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">
-              {searchTerm || statusFilter !== 'all' 
+              {searchTerm 
                 ? 'No se encontraron resultados' 
                 : 'No hay estados de cuenta'
               }
             </h3>
             <p className="mt-1 text-sm text-gray-500">
-              {searchTerm || statusFilter !== 'all'
-                ? 'Intenta ajustar los filtros de búsqueda'
+              {searchTerm
+                ? 'Intenta ajustar los términos de búsqueda'
                 : 'Comienza subiendo tu primer estado de cuenta'
               }
             </p>
-            {(!searchTerm && statusFilter === 'all') && (
+            {!searchTerm && (
               <div className="mt-6">
                 <Link to="/upload" className="btn btn-primary btn-sm">
                   <Upload className="h-4 w-4 mr-2" />
@@ -289,63 +346,146 @@ export default function IntegratedDashboard() {
             )}
           </div>
         ) : (
-          <ul className="divide-y divide-gray-200">
-            {filteredStatements.map((statement) => (
-              <StatementItem
-                key={statement.id}
-                statement={statement}
-                onDelete={() => handleDelete(statement.id)}
-                onProcess={() => handleProcess(statement.id)}
-                isDeleting={deleteStatement.isLoading && deleteStatement.variables === statement.id}
-                isProcessing={processStatement.isLoading && processStatement.variables === statement.id}
-                isMenuOpen={openMenuId === statement.id}
-                onMenuToggle={handleMenuToggle}
-              />
-            ))}
-          </ul>
+          <>
+            {/* Bulk Operations Toolbar */}
+            <div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  {/* Select All Checkbox */}
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                      checked={allSelected}
+                      ref={(el) => {
+                        if (el) el.indeterminate = indeterminate
+                      }}
+                      onChange={() => allSelected ? deselectAllStatements() : selectAllStatements()}
+                    />
+                    <span className="ml-2 text-sm text-gray-700">
+                      {selectedStatements.size > 0 
+                        ? `${selectedStatements.size} seleccionados`
+                        : 'Seleccionar todo'}
+                    </span>
+                  </label>
+
+                  {/* Selection Mode Toggle */}
+                  <button
+                    onClick={toggleSelectionMode}
+                    className={clsx(
+                      'px-3 py-1 text-sm rounded-md',
+                      isSelectionMode
+                        ? 'bg-primary-100 text-primary-700 border border-primary-300'
+                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                    )}
+                  >
+                    {isSelectionMode ? 'Cancelar selección' : 'Selección múltiple'}
+                  </button>
+                </div>
+
+                {/* Bulk Action Buttons */}
+                {selectedStatements.size > 0 && (
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={handleBulkDownload}
+                      className="btn btn-secondary btn-sm"
+                      disabled={selectedStatements.size === 0 || bulkDownloadStatements.isPending}
+                    >
+                      {bulkDownloadStatements.isPending ? (
+                        <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4 mr-1" />
+                      )}
+                      Descargar ({selectedStatements.size})
+                    </button>
+                    <button
+                      onClick={handleBulkDelete}
+                      className="btn btn-danger btn-sm"
+                      disabled={selectedStatements.size === 0 || bulkDeleteStatements.isPending}
+                    >
+                      {bulkDeleteStatements.isPending ? (
+                        <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4 mr-1" />
+                      )}
+                      Eliminar ({selectedStatements.size})
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <ul className="divide-y divide-gray-200">
+              {filteredStatements.map((statement) => (
+                <StatementItem
+                  key={statement.id}
+                  statement={statement}
+                  onDelete={() => handleDelete(statement.id)}
+                  onProcess={() => handleProcess(statement.id)}
+                  isDeleting={deleteStatement.isPending && deleteStatement.variables === statement.id}
+                  isProcessing={processStatement.isPending && processStatement.variables === statement.id}
+                  isMenuOpen={openMenuId === statement.id}
+                  onMenuToggle={handleMenuToggle}
+                  isSelectionMode={isSelectionMode}
+                  isSelected={selectedStatements.has(statement.id)}
+                  onSelectionToggle={() => toggleStatementSelection(statement.id)}
+                />
+              ))}
+            </ul>
+
+            {/* Summary Footer */}
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+              <h3 className="text-sm font-medium text-gray-900 mb-4">Resumen de la vista actual</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-gray-900">
+                    {filteredStatements.length}
+                  </p>
+                  <p className="text-sm text-gray-500">Estados mostrados</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-blue-600">
+                    {filteredStatements.reduce((sum, s) => sum + (s.total_transactions || 0), 0)}
+                  </p>
+                  <p className="text-sm text-gray-500">Transacciones</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-purple-600">
+                    {formatCurrency(filteredStatements.reduce((sum, s) => sum + (s.total_debits || 0), 0))}
+                  </p>
+                  <p className="text-sm text-gray-500">Monto total</p>
+                </div>
+              </div>
+            </div>
+          </>
         )}
       </div>
 
-      {/* Summary Stats */}
-      {filteredStatements.length > 0 && (
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-6 py-4">
-            <h3 className="text-sm font-medium text-gray-900 mb-4">Resumen</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-gray-900">
-                  {filteredStatements.length}
-                </p>
-                <p className="text-sm text-gray-500">Total de estados</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-green-600">
-                  {filteredStatements.filter(s => s.processing_status === 'processed').length}
-                </p>
-                <p className="text-sm text-gray-500">Procesados</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-blue-600">
-                  {filteredStatements.reduce((sum, s) => sum + (s.total_transactions || 0), 0)}
-                </p>
-                <p className="text-sm text-gray-500">Total transacciones</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-purple-600">
-                  {formatCurrency(filteredStatements.reduce((sum, s) => sum + (s.total_debits || 0), 0))}
-                </p>
-                <p className="text-sm text-gray-500">Monto total</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, id: null, isBulk: false })}
+        onConfirm={onConfirmDelete}
+        title={
+          deleteModal.isBulk
+            ? `Eliminar ${selectedStatements.size} estados de cuenta`
+            : 'Eliminar estado de cuenta'
+        }
+        message={
+          deleteModal.isBulk
+            ? `¿Estás seguro de que deseas eliminar los ${selectedStatements.size} estados de cuenta seleccionados? Esta acción no se puede deshacer.`
+            : '¿Estás seguro de que deseas eliminar este estado de cuenta? Esta acción no se puede deshacer.'
+        }
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        isDanger={true}
+        isLoading={deleteStatement.isPending || bulkDeleteStatements.isPending}
+      />
     </div>
   )
 }
 
 // Statement item component
-function StatementItem({ statement, onDelete, onProcess, isDeleting, isProcessing, isMenuOpen, onMenuToggle }) {
+function StatementItem({ statement, onDelete, onProcess, isDeleting, isProcessing, isMenuOpen, onMenuToggle, isSelectionMode, isSelected, onSelectionToggle }) {
   const dropdownRef = useRef(null);
   const statusInfo = getStatusInfo(statement.processing_status)
   
@@ -369,6 +509,19 @@ function StatementItem({ statement, onDelete, onProcess, isDeleting, isProcessin
     <li className="px-6 py-4 hover:bg-gray-50">
       <div className="flex items-center justify-between">
         <div className="flex items-center min-w-0 flex-1">
+          {/* Selection Checkbox */}
+          {isSelectionMode && (
+            <div className="flex-shrink-0 mr-3">
+              <input
+                type="checkbox"
+                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                checked={isSelected}
+                onChange={onSelectionToggle}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          )}
+          
           <div className="flex-shrink-0">
             <div className={clsx(
               'h-10 w-10 rounded-lg flex items-center justify-center',
@@ -508,27 +661,24 @@ function StatementItem({ statement, onDelete, onProcess, isDeleting, isProcessin
 // Stat card component
 function StatCard({ title, value, icon: Icon, color }) {
   const colorClasses = {
-    blue: 'bg-blue-50 text-blue-600 dark:bg-blue-900 dark:text-blue-300',
-    green: 'bg-green-50 text-green-600 dark:bg-green-900 dark:text-green-300',
-    purple: 'bg-purple-50 text-purple-600 dark:bg-purple-900 dark:text-purple-300',
-    orange: 'bg-orange-50 text-orange-600 dark:bg-orange-900 dark:text-orange-300',
+    blue: 'bg-blue-100 text-blue-600',
+    purple: 'bg-purple-100 text-purple-600',
+    orange: 'bg-orange-100 text-orange-600',
   }
 
   return (
-    <div className="bg-card overflow-hidden shadow-md rounded-lg">
+    <div className="bg-white overflow-hidden shadow rounded-lg">
       <div className="p-5">
         <div className="flex items-center">
           <div className="flex-shrink-0">
-            <Icon className={`h-6 w-6 ${colorClasses[color]?.split(' ')[1] || 'text-muted-foreground'}`} />
+            <div className={clsx('flex items-center justify-center h-12 w-12 rounded-md', colorClasses[color])}>
+              <Icon className="h-6 w-6" aria-hidden="true" />
+            </div>
           </div>
           <div className="ml-5 w-0 flex-1">
             <dl>
-              <dt className="text-sm font-medium text-muted-foreground truncate">
-                {title}
-              </dt>
-              <dd className="mt-1 text-lg font-semibold text-foreground">
-                {value}
-              </dd>
+              <dt className="text-sm font-medium text-gray-500 truncate">{title}</dt>
+              <dd className="text-2xl font-semibold text-gray-900">{value}</dd>
             </dl>
           </div>
         </div>
