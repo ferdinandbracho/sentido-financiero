@@ -695,8 +695,9 @@ function TransactionsTab({
                     </div>
                   </td>
                   <td>
-                    <span className={`badge ${categoryInfo.color}`}>
-                      {categoryInfo.icon} {categoryInfo.name}
+                    <span className={`badge ${categoryInfo.color} inline-flex items-center gap-2`}>
+                      {React.createElement(categoryInfo.icon, { className: 'w-3 h-3' })}
+                      {categoryInfo.name}
                     </span>
                   </td>
                   <td className="whitespace-nowrap">

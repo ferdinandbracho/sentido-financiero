@@ -5,23 +5,24 @@ A modern, full-stack application that uses OpenAI's GPT models through LangChain
 ## 📱 Application Screenshots
 
 ### Dashboard Overview
-![Dashboard](docs/images/Screenshot%202025-07-05%20at%2021.39.23.png)
+
+![Dashboard](docs/images/Screenshot%202025-07-06%20at%2016.02.01.png)
 *Main dashboard showing statement summary and financial metrics*
 
 ### Statement Analysis
-![Statement Analysis](docs/images/Screenshot%202025-07-05%20at%2021.39.47.png)
+![Statement Analysis](docs/images/Screenshot%202025-07-06%20at%2015.58.29.png)
 *Detailed statement view with categorized transactions and spending analysis*
 
 ### AI-Powered Categorization
-![Categorization](docs/images/Screenshot%202025-07-05%20at%2021.40.11.png)
+![Categorization](docs/images/Screenshot%202025-07-06%20at%2015.58.38.png)
 *Smart categorization of transactions with detailed breakdowns*
 
 ### Transaction Management
-![Transactions](docs/images/Screenshot%202025-07-05%20at%2021.40.39.png)
+![Transactions](docs/images/Screenshot%202025-07-06%20at%2015.58.49.png)
 *Complete transaction listing with AI-generated categories*
 
 ### File Upload Interface
-![Upload](docs/images/Screenshot%202025-07-05%20at%2021.40.55.png)
+![Upload](docs/images/Screenshot%202025-07-06%20at%2015.58.58.png)
 *Intuitive drag-and-drop PDF upload system*
 
 ## Features in Detail

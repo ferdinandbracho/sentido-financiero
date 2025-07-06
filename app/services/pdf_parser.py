@@ -367,8 +367,16 @@ class PDFProcessor:
         if not merged.get("bank_name") and ocr_result.bank_name:
             merged["bank_name"] = ocr_result.bank_name
         
-        if not merged.get("customer_name") and ocr_result.customer_name:
-            merged["customer_name"] = ocr_result.customer_name
+        # Override customer name if OCR has a better one, especially if current one is wrong
+        if ocr_result.customer_name:
+            current_name = merged.get("customer_name", "")
+            # Always prefer OCR result if current name is wrong or missing
+            if (not current_name or 
+                "GRACIASPORUNAHODESURREFERENCIA" in current_name or
+                "GRACIASPOR" in current_name or
+                "REFERENCIA" in current_name or
+                len(current_name) < 10):
+                merged["customer_name"] = ocr_result.customer_name
             
         if not merged.get("card_last_four") and ocr_result.card_last_four:
             merged["card_last_four"] = ocr_result.card_last_four
