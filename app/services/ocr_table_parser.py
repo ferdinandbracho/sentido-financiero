@@ -187,12 +187,20 @@ class OCRTableParser:
                     break
             
             # Extract period dates (CONDUSEF format)
-            # Look for "PERIODO DE:" followed by dates
+            # Look for "PERIODO DE:" followed by dates in Mexican CONDUSEF format
             period_patterns = [
+                # Pattern: "PERIODO DE: DD-MMM-YYYY AL DD-MMM-YYYY"
+                # \s* = optional spaces, [:\s]+ = colon or spaces, \w{3} = 3-letter month (ENE, FEB, etc.)
                 r'PERIODO\s*DE[:\s]+(\d{1,2}[-/]\w{3}[-/]\d{4})\s*AL?\s*(\d{1,2}[-/]\w{3}[-/]\d{4})',
+                
+                # Pattern: "PERIODO: DD-MMM-YYYY AL DD-MMM-YYYY" (without "DE")
                 r'PERIODO[:\s]+(\d{1,2}[-/]\w{3}[-/]\d{4})\s*AL?\s*(\d{1,2}[-/]\w{3}[-/]\d{4})',
+                
+                # Pattern: "DEL DD-MMM-YYYY AL DD-MMM-YYYY"
                 r'DEL\s+(\d{1,2}[-/]\w{3}[-/]\d{4})\s*AL?\s*(\d{1,2}[-/]\w{3}[-/]\d{4})',
-                r'FECHA\s*DE\s*CORTE[:\s]+(\d{1,2}[-/]\w{3}[-/]\d{4})',  # Cut date
+                
+                # Pattern: "FECHA DE CORTE: DD-MMM-YYYY" (cut date only)
+                r'FECHA\s*DE\s*CORTE[:\s]+(\d{1,2}[-/]\w{3}[-/]\d{4})',
             ]
             
             for pattern in period_patterns:
@@ -253,13 +261,20 @@ class OCRTableParser:
                                 statement.customer_name = cell.strip()
                                 break
             
-            # Extract card number (look for 16-digit patterns)
+            # Extract card number (look for 16-digit patterns in Mexican statements)
             card_patterns = [
-                # Mexican format patterns
+                # Mexican format patterns - exact matches for CONDUSEF statements
+                # Pattern: "Número de tarjeta: 1234 5678 9012 3456"
+                # [Nn][úu]?mero = "Numero" or "Número", [\s:]* = optional spaces/colons
                 r'[Nn][úu]?mero de tarjeta[\s:]*(\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4})',
+                
+                # Pattern: "Tarjeta Núm: 1234 5678 9012 3456" or "Cuenta Núm: ..."
+                # (?:[Tt]arjeta|[Cc]uenta) = "Tarjeta" or "Cuenta"
+                # (?:[Nn][úu]?m\.?|[Nn][úu]?mero)? = optional "Núm", "Num", or "Número"
                 r'(?:[Tt]arjeta|[Cc]uenta)[\s:]*(?:[Nn][úu]?m\.?|[Nn][úu]?mero)?[\s:]*(\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4})',
-                # General patterns
-                r'(\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4})',  # Full card number
+                
+                # General patterns - fallback for any 16-digit sequence
+                r'(\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4})',  # Any 16 digits in 4-4-4-4 format
                 r'(\*{12}\d{4})',  # Masked card number
                 r'(XXXX[\s-]*XXXX[\s-]*XXXX[\s-]*\d{4})'  # X-masked card number
             ]
@@ -587,7 +602,7 @@ class OCRTableParser:
                 "charge_date": tx.charge_date,
                 "description": tx.description,
                 "amount": float(tx.amount) if tx.amount else 0.0,
-                "type": "DEBIT" if tx.transaction_type == "cargo" else "CREDIT",
+                "type": "CARGO" if tx.transaction_type == "cargo" else "ABONO",
                 "category": tx.category,
                 "original_category": tx.category,
                 "confidence": tx.confidence,

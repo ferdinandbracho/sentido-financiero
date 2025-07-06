@@ -5,20 +5,24 @@ This utility helps test and debug table extraction methods on PDF statements.
 Use this to quickly test which extraction method works best for your specific PDFs.
 
 Usage:
-    python -m app.utils.table_extraction_test path/to/your/statement.pdf
+    python -m tests.services.test_table_extraction path/to/your/statement.pdf
 
 Author: StatementSense
 Created: July 2025
 """
 
 import sys
+import os
 import argparse
 from pathlib import Path
 from typing import List, Dict, Any
 
-from app.services.table_extractor import table_extractor, TableExtractionResult
-from app.services.pdf_parser import pdf_processor
-from app.config import settings
+# Add the app directory to the Python path
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'app'))
+
+from services.table_extractor import table_extractor, TableExtractionResult
+from services.pdf_parser import pdf_processor
+from config import settings
 
 logger = settings.get_logger(__name__)
 

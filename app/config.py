@@ -122,6 +122,50 @@ class Settings(BaseSettings):
     EXAMPLE_QUEUE_USERS: Optional[str] = None
     EXAMPLE_ERROR: Optional[str] = None
 
+    # CORS Configuration
+    BACKEND_CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
+    
+    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v: Any) -> str:
+        """Parse CORS origins from comma-separated string."""
+        if isinstance(v, str):
+            return v
+        return ",".join(v) if isinstance(v, list) else str(v)
+    
+    def get_cors_origins(self) -> list[str]:
+        """Get CORS origins as a list."""
+        if not self.BACKEND_CORS_ORIGINS:
+            return ["*"]  # Fallback to allow all origins
+        
+        # Handle the case where it might be parsed as a JSON string
+        origins_str = self.BACKEND_CORS_ORIGINS
+        if origins_str.startswith('[') and origins_str.endswith(']'):
+            # Try to parse as JSON-like string
+            import json
+            try:
+                return json.loads(origins_str)
+            except json.JSONDecodeError:
+                pass
+        
+        # Split by comma and clean up
+        return [origin.strip() for origin in origins_str.split(",") if origin.strip()]
+    
+    # File Upload Configuration
+    ALLOWED_EXTENSIONS: str = "pdf"
+    
+    def get_allowed_extensions(self) -> list[str]:
+        """Get allowed file extensions as a list."""
+        if not self.ALLOWED_EXTENSIONS:
+            return [".pdf"]
+        extensions = [ext.strip() for ext in self.ALLOWED_EXTENSIONS.split(",")]
+        # Ensure extensions start with a dot
+        return [ext if ext.startswith(".") else f".{ext}" for ext in extensions]
+    
+    # Environment Configuration
+    ENVIRONMENT: str = "development"
+    DEBUG: bool = True
+    
     # Logging Configuration
     LOG_LEVEL: str = "INFO"
 
@@ -140,10 +184,11 @@ class Settings(BaseSettings):
             logger.addHandler(handler)
         logger.setLevel(self.LOG_LEVEL.upper())
 
-        # Consider adding a FileHandler like you had before if needed
-        # file_handler = logging.FileHandler(PROJECT_ROOT / "app.log")
-        # file_handler.setFormatter(formatter)
-        # logger.addHandler(file_handler)
+        # File logging can be enabled by setting LOG_TO_FILE=true in environment
+        # if self.DEBUG and self.ENVIRONMENT == "development":
+        #     file_handler = logging.FileHandler(PROJECT_ROOT / "app.log")
+        #     file_handler.setFormatter(formatter)
+        #     logger.addHandler(file_handler)
 
         return logger
 

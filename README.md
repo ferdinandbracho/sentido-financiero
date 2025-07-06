@@ -5,23 +5,23 @@ A modern, full-stack application that uses OpenAI's GPT models through LangChain
 ## 📱 Application Screenshots
 
 ### Dashboard Overview
-![Dashboard](img/Screenshot%202025-07-05%20at%2021.39.23.png)
+![Dashboard](docs/images/Screenshot%202025-07-05%20at%2021.39.23.png)
 *Main dashboard showing statement summary and financial metrics*
 
 ### Statement Analysis
-![Statement Analysis](img/Screenshot%202025-07-05%20at%2021.39.47.png)
+![Statement Analysis](docs/images/Screenshot%202025-07-05%20at%2021.39.47.png)
 *Detailed statement view with categorized transactions and spending analysis*
 
 ### AI-Powered Categorization
-![Categorization](img/Screenshot%202025-07-05%20at%2021.40.11.png)
+![Categorization](docs/images/Screenshot%202025-07-05%20at%2021.40.11.png)
 *Smart categorization of transactions with detailed breakdowns*
 
 ### Transaction Management
-![Transactions](img/Screenshot%202025-07-05%20at%2021.40.39.png)
+![Transactions](docs/images/Screenshot%202025-07-05%20at%2021.40.39.png)
 *Complete transaction listing with AI-generated categories*
 
 ### File Upload Interface
-![Upload](img/Screenshot%202025-07-05%20at%2021.40.55.png)
+![Upload](docs/images/Screenshot%202025-07-05%20at%2021.40.55.png)
 *Intuitive drag-and-drop PDF upload system*
 
 ## Features in Detail
@@ -335,7 +335,7 @@ statement-sense/
 │   │   ├── services/      # API services
 │   │   └── utils/         # Utilities
 │   └── package.json
-├── img/                   # UI Screenshots
+├── docs/                  # Documentation and screenshots
 ├── migrations/            # Database migrations
 ├── docker-compose.yml     # Docker services
 └── README.md

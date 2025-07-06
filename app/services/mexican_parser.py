@@ -339,12 +339,14 @@ class MexicanStatementParser:
         """Convert Mexican amount format ($X,XXX.XX) to Decimal."""
         try:
             # Remove currency symbols and whitespace
+            # Pattern: [\$\s] = dollar sign or any whitespace character
             clean_amount = re.sub(r"[\$\s]", "", amount_str)
-            # Handle negative amounts in parentheses
-            is_negative = clean_amount.startswith(
-                "-"
-            ) or clean_amount.startswith("(")
-            # Remove commas and parentheses
+            
+            # Handle negative amounts in parentheses (Mexican format: $(1,234.56) or -$1,234.56)
+            is_negative = clean_amount.startswith("-") or clean_amount.startswith("(")
+            
+            # Remove commas and parentheses from amounts
+            # Pattern: [,\(\)] = comma, opening paren, or closing paren
             clean_amount = re.sub(r"[,\(\)]", "", clean_amount).replace("-", "")
 
             if clean_amount:
@@ -566,7 +568,7 @@ class MexicanStatementParser:
                         "charge_date": charge_date,
                         "description": description.strip(),
                         "amount": amount,
-                        "transaction_type": "DEBIT" if amount < 0 else "CREDIT",
+                        "transaction_type": "CARGO" if amount < 0 else "ABONO",
                     }
                     transactions.append(transaction)
                     successful_parses += 1
