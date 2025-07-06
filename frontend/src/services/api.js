@@ -2,7 +2,7 @@ import axios from 'axios'
 
 const api = axios.create({
   baseURL: '/api/v1',
-  timeout: 30000,
+  timeout: 40000, // 40 seconds timeout for PDF processing
   headers: {
     'Content-Type': 'application/json',
   },
