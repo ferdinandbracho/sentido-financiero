@@ -1,16 +1,38 @@
-# AI-Powered Bank Statement Analyzer
+# SentidoFinanciero - AI-Powered Bank Statement Analyzer
 
-A modern, full-stack application that uses OpenAI's GPT models through LangChain to automatically categorize and analyze bank statement transactions. Upload PDF statements and get intelligent insights about your spending patterns.
+A modern, full-stack application that uses OpenAI's GPT models through LangChain to automatically categorize and analyze Mexican bank statement transactions. Upload PDF statements and get intelligent insights about your spending patterns with full Spanish language support.
 
-![SentidoFinanciero Demo](https://via.placeholder.com/800x400/3B82F6/FFFFFF?text=SentidoFinanciero+Demo)
+## 📱 Application Screenshots
+
+### Dashboard Overview
+![Dashboard](img/Screenshot%202025-07-05%20at%2021.39.23.png)
+*Main dashboard showing statement summary and financial metrics*
+
+### Statement Analysis
+![Statement Analysis](img/Screenshot%202025-07-05%20at%2021.39.47.png)
+*Detailed statement view with categorized transactions and spending analysis*
+
+### AI-Powered Categorization
+![Categorization](img/Screenshot%202025-07-05%20at%2021.40.11.png)
+*Smart categorization of transactions with detailed breakdowns*
+
+### Transaction Management
+![Transactions](img/Screenshot%202025-07-05%20at%2021.40.39.png)
+*Complete transaction listing with AI-generated categories*
+
+### File Upload Interface
+![Upload](img/Screenshot%202025-07-05%20at%2021.40.55.png)
+*Intuitive drag-and-drop PDF upload system*
 
 ## Features in Detail
 
 ### Smart Categorization
 
 * **Hybrid Approach**: Combines rules-based and ML-based categorization
-* **Learning System**: Improves over time with user feedback
-* **Multi-language Support**: Works with English and Spanish transactions
+* **Mexican Bank Support**: Optimized for BBVA, Santander, and other Mexican banks
+* **CONDUSEF Format**: Supports universal bank statement format (October 2024+)
+* **Multi-language Support**: Full Spanish interface with Mexican financial terminology
+* **Intelligent Recognition**: Understands Mexican merchant names and transaction patterns
 
 ### Data Visualization
 
@@ -26,10 +48,13 @@ A modern, full-stack application that uses OpenAI's GPT models through LangChain
 
 ### Modern Interface
 
+* **Bilingual Support**: Full Spanish interface with Mexican financial terminology
 * **Responsive Design**: Works perfectly on desktop, tablet, and mobile
 * **Real-time Updates**: Live processing status and notifications
-* **Drag & Drop Upload**: Intuitive file upload experience
-* **Dark/Light Themes**: Comfortable viewing in any environment
+* **Drag & Drop Upload**: Intuitive PDF file upload with format validation
+* **Interactive Dashboard**: Clean, modern UI with comprehensive financial metrics
+* **Smart Navigation**: Breadcrumb navigation and intuitive menu structure
+* **Visual Analytics**: Interactive charts and graphs for spending patterns
 
 ## Architecture
 
@@ -188,26 +213,38 @@ OPENAI_MODEL=gpt-3.5-turbo  # For cost efficiency
 
 ### 1. Upload Statement
 
-1. Navigate to **Upload** page
-2. Drag & drop PDF file or click to select
-3. Wait for upload confirmation
-4. Click "Process" to analyze with AI
+1. Navigate to **Subir Estado** (Upload Statement) page
+2. Drag & drop PDF file or click **Seleccionar Archivos** to browse
+3. Supports CONDUSEF universal format (since October 2024)
+4. Maximum file size: 50MB per file
+5. Wait for upload confirmation
+6. Click **Procesar** to analyze with AI
 
-### 2. View Analysis
+### 2. View Dashboard
 
-1. Go to **Statements** page
-2. Click on processed statement
-3. Explore different tabs:
-   - **Overview**: AI-powered charts and summaries
-   - **Transactions**: Detailed transaction list with AI categories
-   - **Analysis**: In-depth spending analysis
+1. Access the main **Dashboard** for overview metrics
+2. View total statements, transactions, and amounts processed
+3. Search and filter statements by name or bank
+4. Click on any statement to view detailed analysis
 
-### 3. Manage Categories
+### 3. Analyze Statements
 
-1. Click on any transaction
-2. Review AI-suggested category
-3. Edit if needed (system learns from corrections)
-4. Export data for external use
+1. Select a processed statement from the dashboard
+2. Explore two main tabs:
+   - **Análisis**: Interactive charts showing spending distribution by category
+   - **Transacciones**: Complete transaction list with AI-generated categories
+3. View detailed breakdowns including:
+   - Balance Neto (Net Balance)
+   - Total Ingresos (Total Income) 
+   - Total Gastos (Total Expenses)
+   - Spending by category with visual charts
+
+### 4. Manage Categories
+
+1. Review AI-suggested categories in the transaction list
+2. Categories include: Alimentación, Transporte, Salud, Ropa, etc.
+3. All categorization is automatic using hybrid AI approach
+4. Export functionality available for external analysis
 
 ## AI Categorization
 
@@ -286,9 +323,11 @@ statement-sense/
 │   ├── schemas/           # Pydantic schemas
 │   ├── services/          # Business logic
 │   │   ├── pdf_parser.py  # Enhanced PDF processing
+│   │   ├── mexican_parser.py # Mexican bank statement parser
+│   │   ├── ocr_table_parser.py # OCR table extraction
 │   │   └── smart_categorizer.py # OpenAI + LangChain categorization
 │   └── main.py           # FastAPI app
-├── frontend/              # React Frontend
+├── frontend/              # React Frontend (SentidoFinanciero)
 │   ├── src/
 │   │   ├── components/    # UI components
 │   │   ├── pages/         # Page components
@@ -296,6 +335,7 @@ statement-sense/
 │   │   ├── services/      # API services
 │   │   └── utils/         # Utilities
 │   └── package.json
+├── img/                   # UI Screenshots
 ├── migrations/            # Database migrations
 ├── docker-compose.yml     # Docker services
 └── README.md
@@ -433,17 +473,9 @@ curl -H "Authorization: Bearer $OPENAI_API_KEY" \
 docker-compose -f docker-compose.prod.yml up -d
 ```
 
-### Performance Optimization
-* Enable PostgreSQL connection pooling
-* Use Redis for caching categorization results
-* Configure CDN for static assets
-* Optimize Docker images
-* Set up load balancing
-* Implement OpenAI response caching
-
 ## Contributing
 
-We welcome contributions! Please read our [Contributing Guidelines](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+We welcome contributions!
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
@@ -451,13 +483,6 @@ We welcome contributions! Please read our [Contributing Guidelines](CONTRIBUTING
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-### Development Guidelines
-* Follow PEP 8 for Python code
-* Use Prettier for JavaScript formatting
-* Write tests for new features
-* Update documentation
-* Use conventional commit messages
-* Test with both GPT-3.5-turbo and GPT-4
 
 ## Acknowledgments
 
@@ -471,9 +496,5 @@ We welcome contributions! Please read our [Contributing Guidelines](CONTRIBUTING
 
 ## Support
 
-* **Documentation**: Check the `/docs` endpoints
 * **Issues**: Report bugs via GitHub Issues
-* **Discussions**: Use GitHub Discussions for questions
-* **Email**: [contact@SentidoFinanciero.com](mailto:contact@SentidoFinanciero.com)
 
----
