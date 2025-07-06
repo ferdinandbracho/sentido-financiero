@@ -56,7 +56,7 @@ MEXICAN_PATTERNS = {
     "transaction_section": r"DESGLOSE DE MOVIMIENTOS",
     "transaction_table": r"CARGOS.*?ABONOS.*?REGULARES.*?\(NO A MESES\)",
     # Customer Info Patterns
-    "card_number": r"[Nn]úmero de tarjeta:\s*(\d{4}\s*\d{4}\s*\d{4}\s*\d{4})",
+    "card_number": r"[Nn][úu]mero de tarjeta:\s*(\d{4}\s*\d{4}\s*\d{4}\s*\d{4})",
     "customer_name_pattern": r"^([A-Z\s]{10,50})\s*$",
     "bank_name": r"(BBVA|Santander|Banamex|HSBC|Scotiabank|Banorte|Citibanamex)",
     # Date and Amount Formats
@@ -379,10 +379,25 @@ class MexicanStatementParser:
         # Extract bank name
         info["bank_name"] = self.detect_bank(text)
 
-        # Extract card number
-        card_match = re.search(MEXICAN_PATTERNS["card_number"], text)
+        # Extract card number - try multiple patterns
+        card_match = re.search(MEXICAN_PATTERNS["card_number"], text, re.IGNORECASE)
         if card_match:
             info["card_number"] = card_match.group(1).replace(" ", "")
+        else:
+            # Fallback patterns for OCR variations
+            fallback_patterns = [
+                r"(?:[Tt]arjeta|[Cc]uenta)[\s:]*(?:[Nn][úu]?m\.?|[Nn][úu]?mero)?[\s:]*(\d{4}\s*\d{4}\s*\d{4}\s*\d{4})",
+                r"(\d{4}\s*\d{4}\s*\d{4}\s*\d{4})",  # Any 16-digit sequence as last resort
+            ]
+            
+            for pattern in fallback_patterns:
+                card_match = re.search(pattern, text, re.IGNORECASE)
+                if card_match:
+                    card_num = card_match.group(1).replace(" ", "")
+                    # Validate it's actually a card number (starts with valid prefixes)
+                    if re.match(r'^[3-6]\d{15}$', card_num):
+                        info["card_number"] = card_num
+                        break
 
         # Extract customer name (look for lines with all caps names)
         lines = text.split("\n")

@@ -255,20 +255,34 @@ class OCRTableParser:
             
             # Extract card number (look for 16-digit patterns)
             card_patterns = [
-                r'\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}',  # Full card number
-                r'\*{12}\d{4}',  # Masked card number
-                r'XXXX\s*XXXX\s*XXXX\s*\d{4}'  # X-masked card number
+                # Mexican format patterns
+                r'[Nn][úu]?mero de tarjeta[\s:]*(\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4})',
+                r'(?:[Tt]arjeta|[Cc]uenta)[\s:]*(?:[Nn][úu]?m\.?|[Nn][úu]?mero)?[\s:]*(\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4})',
+                # General patterns
+                r'(\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4})',  # Full card number
+                r'(\*{12}\d{4})',  # Masked card number
+                r'(XXXX[\s-]*XXXX[\s-]*XXXX[\s-]*\d{4})'  # X-masked card number
             ]
             
             for pattern in card_patterns:
-                match = re.search(pattern, table_text)
+                match = re.search(pattern, table_text, re.IGNORECASE)
                 if match:
-                    card_number = match.group()
-                    # Extract last 4 digits
-                    last_four = re.findall(r'\d{4}', card_number)[-1] if re.findall(r'\d{4}', card_number) else None
-                    if last_four:
-                        statement.card_last_four = last_four
+                    card_number = match.group(1) if match.lastindex else match.group()
+                    clean_card = card_number.replace(" ", "").replace("-", "")
+                    
+                    # Validate card number format and extract last 4 digits
+                    if re.match(r'^\d{16}$', clean_card):  # Full 16-digit card
+                        statement.card_last_four = clean_card[-4:]
                         break
+                    elif re.match(r'^\*{12}\d{4}$', clean_card):  # Masked format
+                        statement.card_last_four = clean_card[-4:]
+                        break
+                    else:
+                        # Extract last 4 digits from any pattern that has digits
+                        last_four = re.findall(r'\d{4}', card_number)[-1] if re.findall(r'\d{4}', card_number) else None
+                        if last_four:
+                            statement.card_last_four = last_four
+                            break
             
         except Exception as e:
             self.logger.warning(f"Header info parsing failed: {e}")
