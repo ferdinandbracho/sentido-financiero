@@ -443,10 +443,11 @@ class TableExtractor:
         """
         all_tables = []
         
-        # Try extracting from each page
+        # Try extracting from each page (limited for performance)
         pdf_file = io.BytesIO(pdf_content)
         with pdfplumber.open(pdf_file) as pdf:
-            for page_num in range(len(pdf.pages)):
+            max_pages = min(len(pdf.pages), settings.MAX_PAGES_TO_PROCESS)
+            for page_num in range(max_pages):
                 results = self.extract_tables_from_pdf(pdf_content, page_num)
                 
                 # Get best result for this page

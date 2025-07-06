@@ -672,7 +672,7 @@ class MexicanStatementParser:
             self.llm_processed.add(cache_key)
             return "otros"
 
-    @lru_cache(maxsize=1000)
+    @lru_cache(maxsize=settings.PARSER_CACHE_SIZE)
     def categorize_mexican_transaction(self, description: str) -> Optional[str]:
         """Categorize transaction using a multi-tier approach with LLM
         fallback.
@@ -831,7 +831,7 @@ class MexicanStatementParser:
         if "transactions" in extracted_data:
             if len(extracted_data["transactions"]) == 0:
                 validation_result["warnings"].append("No transactions found")
-            elif len(extracted_data["transactions"]) > 1000:
+            elif len(extracted_data["transactions"]) > settings.MAX_TRANSACTIONS_PER_STATEMENT:
                 validation_result["warnings"].append(
                     "Unusually high transaction count"
                 )

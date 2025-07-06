@@ -31,6 +31,11 @@ class Settings(BaseSettings):
     # Upload settings
     UPLOAD_DIR: str = "./uploads"
     MAX_FILE_SIZE: int = 50 * 1024 * 1024  # 50MB
+    
+    # Processing limits
+    MAX_TRANSACTIONS_PER_STATEMENT: int = 1000
+    PARSER_CACHE_SIZE: int = 1000
+    MAX_PAGES_TO_PROCESS: int = 5  # Limit page processing for performance
 
     @field_validator("MAX_FILE_SIZE", mode="before")
     @classmethod
@@ -184,11 +189,11 @@ class Settings(BaseSettings):
             logger.addHandler(handler)
         logger.setLevel(self.LOG_LEVEL.upper())
 
-        # File logging can be enabled by setting LOG_TO_FILE=true in environment
-        # if self.DEBUG and self.ENVIRONMENT == "development":
-        #     file_handler = logging.FileHandler(PROJECT_ROOT / "app.log")
-        #     file_handler.setFormatter(formatter)
-        #     logger.addHandler(file_handler)
+        # File logging can be enabled in production environments if needed
+        # Example: Add file handler for persistent logging
+        # file_handler = logging.FileHandler(PROJECT_ROOT / "app.log")
+        # file_handler.setFormatter(formatter)
+        # logger.addHandler(file_handler)
 
         return logger
 
@@ -196,11 +201,7 @@ class Settings(BaseSettings):
 # Create a single instance of the settings to be used throughout the application
 settings = Settings()
 
-# Example: Get a logger for the current module (config.py)
-# You can get loggers in other modules similarly: from app.config import settings; logger = settings.get_logger(__name__) # noqa: E501
+# Usage example:
+# from app.config import settings
 # logger = settings.get_logger(__name__)
-# logger.info("Configuration loaded successfully.")
-# if settings.DATABASE_URL:
-#     logger.info(f"Database URL: {settings.DATABASE_URL}")
-# else:
-#     logger.warning("DATABASE_URL could not be constructed. Check .env file and DB settings.") # noqa: E501
+# logger.info("Module loaded successfully")
