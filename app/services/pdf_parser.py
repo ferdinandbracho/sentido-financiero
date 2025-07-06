@@ -358,6 +358,58 @@ class PDFProcessor:
             result = parser_result
 
         return result
+    
+    def _merge_extraction_results(self, base_metadata: Dict, ocr_result) -> Dict:
+        """Merge OCR extraction results with existing metadata."""
+        merged = base_metadata.copy()
+        
+        # Only update fields that are missing in the base metadata
+        if not merged.get("bank_name") and ocr_result.bank_name:
+            merged["bank_name"] = ocr_result.bank_name
+        
+        if not merged.get("customer_name") and ocr_result.customer_name:
+            merged["customer_name"] = ocr_result.customer_name
+            
+        if not merged.get("card_last_four") and ocr_result.card_last_four:
+            merged["card_last_four"] = ocr_result.card_last_four
+            
+        if not merged.get("period_start") and ocr_result.period_start:
+            merged["period_start"] = ocr_result.period_start
+            
+        if not merged.get("period_end") and ocr_result.period_end:
+            merged["period_end"] = ocr_result.period_end
+            
+        if not merged.get("cut_date") and ocr_result.cut_date:
+            merged["cut_date"] = ocr_result.cut_date
+            
+        if not merged.get("due_date") and ocr_result.due_date:
+            merged["due_date"] = ocr_result.due_date
+            
+        if not merged.get("pay_no_interest") and ocr_result.pay_no_interest:
+            merged["pay_no_interest"] = float(ocr_result.pay_no_interest)
+            
+        if not merged.get("minimum_payment") and ocr_result.minimum_payment:
+            merged["minimum_payment"] = float(ocr_result.minimum_payment)
+            
+        if not merged.get("previous_balance") and ocr_result.previous_balance:
+            merged["previous_balance"] = float(ocr_result.previous_balance)
+            
+        if not merged.get("total_charges") and ocr_result.total_charges:
+            merged["total_charges"] = float(ocr_result.total_charges)
+            
+        if not merged.get("total_payments") and ocr_result.total_payments:
+            merged["total_payments"] = float(ocr_result.total_payments)
+            
+        if not merged.get("credit_limit") and ocr_result.credit_limit:
+            merged["credit_limit"] = float(ocr_result.credit_limit)
+            
+        if not merged.get("available_credit") and ocr_result.available_credit:
+            merged["available_credit"] = float(ocr_result.available_credit)
+            
+        if not merged.get("total_balance") and ocr_result.total_balance:
+            merged["total_balance"] = float(ocr_result.total_balance)
+        
+        return merged
 
     def process_llm_fallback(self, text: str) -> Dict:
         """Process statement using LLM as fallback (not implemented yet)."""
@@ -423,6 +475,63 @@ class PDFProcessor:
                 self.logger.info(
                     f"Mexican parser result: {result['success']} with confidence {result['confidence']:.2f}"
                 )
+                
+                # Check if critical financial data is missing and try enhanced OCR extraction
+                metadata = result.get("metadata", {})
+                missing_critical_data = (
+                    not metadata.get("previous_balance") or
+                    not metadata.get("total_charges") or 
+                    not metadata.get("total_payments") or
+                    not metadata.get("credit_limit") or
+                    not metadata.get("available_credit") or
+                    not metadata.get("total_balance") or
+                    not metadata.get("cut_date") or
+                    not metadata.get("due_date")
+                )
+                
+                if missing_critical_data:
+                    self.logger.info("Critical financial data missing, attempting enhanced OCR extraction")
+                    try:
+                        # Use our improved OCR table parser on the raw text
+                        ocr_result = ocr_table_parser.parse_raw_text(text, filename)
+                        
+                        # Merge OCR results with existing results
+                        if ocr_result:
+                            enhanced_metadata = self._merge_extraction_results(metadata, ocr_result)
+                            result["metadata"] = enhanced_metadata
+                            
+                            # Update extraction method to indicate enhanced processing
+                            result["extraction_method"] = "mexican_template_enhanced"
+                            
+                            # Log what was enhanced
+                            enhanced_fields = []
+                            if not metadata.get("previous_balance") and ocr_result.previous_balance:
+                                enhanced_fields.append("previous_balance")
+                            if not metadata.get("total_charges") and ocr_result.total_charges:
+                                enhanced_fields.append("total_charges")
+                            if not metadata.get("total_payments") and ocr_result.total_payments:
+                                enhanced_fields.append("total_payments")
+                            if not metadata.get("credit_limit") and ocr_result.credit_limit:
+                                enhanced_fields.append("credit_limit")
+                            if not metadata.get("available_credit") and ocr_result.available_credit:
+                                enhanced_fields.append("available_credit")
+                            if not metadata.get("total_balance") and ocr_result.total_balance:
+                                enhanced_fields.append("total_balance")
+                            if not metadata.get("cut_date") and ocr_result.cut_date:
+                                enhanced_fields.append("cut_date")
+                            if not metadata.get("due_date") and ocr_result.due_date:
+                                enhanced_fields.append("due_date")
+                            if not metadata.get("minimum_payment") and ocr_result.minimum_payment:
+                                enhanced_fields.append("minimum_payment")
+                            if not metadata.get("pay_no_interest") and ocr_result.pay_no_interest:
+                                enhanced_fields.append("pay_no_interest")
+                            
+                            if enhanced_fields:
+                                self.logger.info(f"Enhanced extraction added: {', '.join(enhanced_fields)}")
+                            
+                    except Exception as ocr_error:
+                        self.logger.warning(f"Enhanced OCR extraction failed: {ocr_error}")
+                        # Continue with original result
                 
                 # Always try direct OCR extraction for card number from page 2 if not found or None
                 card_last_four = result.get("metadata", {}).get("card_last_four") if result.get("metadata") else None
