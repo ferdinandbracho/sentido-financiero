@@ -19,6 +19,12 @@ from app.models.statement import ExtractionMethodEnum
 from app.services.mexican_parser import mexican_parser
 from app.services.table_extractor import table_extractor
 from app.services.ocr_table_parser import ocr_table_parser
+from app.exceptions import (
+    PDFProcessingError, 
+    TextExtractionError, 
+    OCRExtractionError,
+    ValidationError
+)
 
 logger = settings.get_logger(__name__)
 
@@ -607,22 +613,31 @@ class PDFProcessor:
     def validate_pdf(self, pdf_content: bytes) -> bool:
         """Validate that the uploaded file is a proper PDF."""
         try:
+            if not pdf_content:
+                raise ValidationError("PDF content is empty")
+            
             pdf_file = io.BytesIO(pdf_content)
 
             with pdfplumber.open(pdf_file) as pdf:
                 # Check if PDF has pages
                 if len(pdf.pages) == 0:
-                    return False
+                    raise PDFProcessingError("PDF contains no pages")
 
                 # Try to read first page to ensure it's not corrupted
-                first_page = pdf.pages[0]
-                first_page.extract_text()
+                try:
+                    first_page = pdf.pages[0]
+                    first_page.extract_text()
+                except Exception as page_error:
+                    raise PDFProcessingError(f"Cannot read PDF content: {page_error}")
 
             return True
 
+        except (ValidationError, PDFProcessingError):
+            # Re-raise our custom exceptions
+            raise
         except Exception as e:
-            self.logger.warning(f"PDF validation failed: {e}")
-            return False
+            # Convert other exceptions to our custom type
+            raise PDFProcessingError(f"PDF validation failed: {e}") from e
 
     def get_pdf_metadata(self, pdf_content: bytes) -> Dict:
         """Extract metadata from PDF for logging and tracking."""

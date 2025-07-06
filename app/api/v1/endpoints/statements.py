@@ -50,12 +50,18 @@ from app.schemas.statements import (
 )
 from sqlalchemy import func
 from app.services.pdf_parser import pdf_processor
+from app.exceptions import (
+    PDFProcessingError,
+    TextExtractionError,
+    ValidationError,
+    FileValidationError
+)
 
 logger = settings.get_logger(__name__)
 router = APIRouter()
 
-# File upload constraints
-MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
+# File upload constraints from config
+MAX_FILE_SIZE = settings.MAX_FILE_SIZE
 
 # Month names in Spanish
 MONTH_NAMES = {
@@ -189,11 +195,18 @@ async def upload_statement(
             f"Processing uploaded file: {file.filename} ({file_size} bytes)"
         )
 
-        # Validate PDF format
-        if not pdf_processor.validate_pdf(file_content):
+        # Validate PDF format with enhanced error handling
+        try:
+            pdf_processor.validate_pdf(file_content)
+        except ValidationError as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid or corrupted PDF file",
+                detail=f"File validation failed: {str(e)}",
+            )
+        except PDFProcessingError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"PDF processing failed: {str(e)}",
             )
 
         # Process statement using template-first approach

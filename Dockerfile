@@ -6,12 +6,21 @@ FROM python:3.11-slim as base
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including OCR requirements
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     curl \
+    tesseract-ocr \
+    tesseract-ocr-spa \
+    tesseract-ocr-eng \
+    libtesseract-dev \
+    libopencv-dev \
+    poppler-utils \
     && rm -rf /var/lib/apt/lists/*
+
+# Verify Tesseract installation and available languages
+RUN tesseract --version && tesseract --list-langs
 
 # Install uv for package management
 RUN pip install --no-cache-dir uv
