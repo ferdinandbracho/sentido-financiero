@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     # Processing limits
     MAX_TRANSACTIONS_PER_STATEMENT: int = 1000
     PARSER_CACHE_SIZE: int = 1000
-    MAX_PAGES_TO_PROCESS: int = 5  # Limit page processing for performance
+    MAX_PAGES_TO_PROCESS: int = 15  # Limit page processing for performance
 
     @field_validator("MAX_FILE_SIZE", mode="before")
     @classmethod
