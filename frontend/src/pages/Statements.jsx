@@ -197,6 +197,12 @@ export function Statements() {
                 <Trash2 className="h-4 w-4 mr-2" />
                 Eliminar ({selectedStatements.size})
               </button>
+              <button
+                onClick={() => setSelectedStatements(new Set())}
+                className="btn btn-outline-secondary btn-md"
+              >
+                Cancelar selección
+              </button>
             </>
           )}
           <Link to="/upload" className="btn btn-primary btn-md">

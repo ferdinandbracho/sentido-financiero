@@ -45,7 +45,6 @@ export default function IntegratedDashboard() {
   
   // State for bulk operations
   const [selectedStatements, setSelectedStatements] = useState(new Set())
-  const [isSelectionMode, setIsSelectionMode] = useState(false)
 
   // State for delete confirmation modal
   const [deleteModal, setDeleteModal] = useState({
@@ -170,13 +169,6 @@ export default function IntegratedDashboard() {
 
   const deselectAllStatements = () => {
     setSelectedStatements(new Set())
-  }
-
-  const toggleSelectionMode = () => {
-    setIsSelectionMode(!isSelectionMode)
-    if (isSelectionMode) {
-      setSelectedStatements(new Set())
-    }
   }
 
   const handleBulkDelete = () => {
@@ -368,19 +360,6 @@ export default function IntegratedDashboard() {
                         : 'Seleccionar todo'}
                     </span>
                   </label>
-
-                  {/* Selection Mode Toggle */}
-                  <button
-                    onClick={toggleSelectionMode}
-                    className={clsx(
-                      'px-3 py-1 text-sm rounded-md',
-                      isSelectionMode
-                        ? 'bg-primary-100 text-primary-700 border border-primary-300'
-                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                    )}
-                  >
-                    {isSelectionMode ? 'Cancelar selección' : 'Selección múltiple'}
-                  </button>
                 </div>
 
                 {/* Bulk Action Buttons */}
@@ -426,7 +405,6 @@ export default function IntegratedDashboard() {
                   isProcessing={processStatement.isPending && processStatement.variables === statement.id}
                   isMenuOpen={openMenuId === statement.id}
                   onMenuToggle={handleMenuToggle}
-                  isSelectionMode={isSelectionMode}
                   isSelected={selectedStatements.has(statement.id)}
                   onSelectionToggle={() => toggleStatementSelection(statement.id)}
                 />
@@ -485,7 +463,7 @@ export default function IntegratedDashboard() {
 }
 
 // Statement item component
-function StatementItem({ statement, onDelete, onProcess, isDeleting, isProcessing, isMenuOpen, onMenuToggle, isSelectionMode, isSelected, onSelectionToggle }) {
+function StatementItem({ statement, onDelete, onProcess, isDeleting, isProcessing, isMenuOpen, onMenuToggle, isSelected, onSelectionToggle }) {
   const dropdownRef = useRef(null);
   const statusInfo = getStatusInfo(statement.processing_status)
   
@@ -509,18 +487,16 @@ function StatementItem({ statement, onDelete, onProcess, isDeleting, isProcessin
     <li className="px-6 py-4 hover:bg-gray-50">
       <div className="flex items-center justify-between">
         <div className="flex items-center min-w-0 flex-1">
-          {/* Selection Checkbox */}
-          {isSelectionMode && (
-            <div className="flex-shrink-0 mr-3">
-              <input
-                type="checkbox"
-                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                checked={isSelected}
-                onChange={onSelectionToggle}
-                onClick={(e) => e.stopPropagation()}
-              />
-            </div>
-          )}
+          {/* Selection Checkbox - Always visible */}
+          <div className="flex-shrink-0 mr-3">
+            <input
+              type="checkbox"
+              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+              checked={isSelected}
+              onChange={onSelectionToggle}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
           
           <div className="flex-shrink-0">
             <div className={clsx(

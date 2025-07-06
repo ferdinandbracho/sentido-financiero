@@ -87,67 +87,86 @@ export const capitalize = (str) => {
 /**
  * Get category display name and color
  */
+import { 
+  Utensils, 
+  Fuel, 
+  Wrench, 
+  HeartPulse, 
+  Car, 
+  Film, 
+  Shirt, 
+  GraduationCap, 
+  ArrowLeftRight, 
+  Shield, 
+  BarChart2, 
+  FileText,
+  File, 
+  Clock, 
+  CheckCircle, 
+  XCircle
+} from 'lucide-react';
+
 export const getCategoryInfo = (category) => {
   const categoryMap = {
     alimentacion: {
       name: 'Alimentación',
       color: 'bg-green-100 text-green-800',
-      icon: '🍽️'
+      icon: Utensils
     },
     gasolineras: {
       name: 'Gasolineras',
       color: 'bg-yellow-100 text-yellow-800',
-      icon: '⛽'
+      icon: Fuel
     },
     servicios: {
       name: 'Servicios',
       color: 'bg-blue-100 text-blue-800',
-      icon: '🔧'
+      icon: Wrench
     },
     salud: {
       name: 'Salud',
       color: 'bg-red-100 text-red-800',
-      icon: '🏥'
+      icon: HeartPulse
     },
     transporte: {
       name: 'Transporte',
       color: 'bg-purple-100 text-purple-800',
-      icon: '🚗'
+      icon: Car
     },
     entretenimiento: {
       name: 'Entretenimiento',
       color: 'bg-pink-100 text-pink-800',
-      icon: '🎬'
+      icon: Film
     },
     ropa: {
       name: 'Ropa',
       color: 'bg-indigo-100 text-indigo-800',
-      icon: '👕'
+      icon: Shirt
     },
     educacion: {
       name: 'Educación',
       color: 'bg-orange-100 text-orange-800',
-      icon: '📚'
+      icon: GraduationCap
     },
     transferencias: {
       name: 'Transferencias',
       color: 'bg-gray-100 text-gray-800',
-      icon: '💸'
+      icon: ArrowLeftRight
     },
     seguros: {
       name: 'Seguros',
       color: 'bg-teal-100 text-teal-800',
-      icon: '🛡️'
+      icon: Shield
     },
     intereses_comisiones: {
       name: 'Intereses/Comisiones',
       color: 'bg-red-100 text-red-800',
-      icon: '📊'
+      icon: BarChart2
     },
     otros: {
       name: 'Otros',
       color: 'bg-gray-100 text-gray-800',
-      icon: '📋'
+      icon: FileText
     }
   }
   
@@ -162,22 +181,22 @@ export const getStatusInfo = (status) => {
     uploaded: {
       name: 'Subido',
       color: 'bg-blue-100 text-blue-800',
-      icon: '📄'
+      icon: File
     },
     processing: {
       name: 'Procesando',
       color: 'bg-yellow-100 text-yellow-800',
-      icon: '⏳'
+      icon: Clock
     },
     processed: {
       name: 'Procesado',
       color: 'bg-green-100 text-green-800',
-      icon: '✅'
+      icon: CheckCircle
     },
     failed: {
       name: 'Error',
       color: 'bg-red-100 text-red-800',
-      icon: '❌'
+      icon: XCircle
     }
   }
   
