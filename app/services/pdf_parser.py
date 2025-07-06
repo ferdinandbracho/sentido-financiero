@@ -417,14 +417,84 @@ class PDFProcessor:
                 self.logger.info(
                     f"Mexican parser result: {result['success']} with confidence {result['confidence']:.2f}"
                 )
+                
+                # Always try direct OCR extraction for card number from page 2 if not found or None
+                card_last_four = result.get("metadata", {}).get("card_last_four") if result.get("metadata") else None
+                if (card_last_four is None or not card_last_four):
+                    self.logger.info("Attempting direct OCR card extraction from page 2")
+                    try:
+                        # Direct OCR extraction from page 2
+                        import pytesseract
+                        with pdfplumber.open(io.BytesIO(pdf_content)) as pdf:
+                            if len(pdf.pages) > 1:  # Ensure page 2 exists
+                                page = pdf.pages[1]  # Page 2 (0-indexed)
+                                pil_image = page.to_image(resolution=300).original
+                                ocr_text = pytesseract.image_to_string(
+                                    pil_image,
+                                    lang='spa+eng',
+                                    config='--psm 6'
+                                )
+                                
+                                # Extract card number using our proven pattern
+                                import re
+                                pattern = r'[Nn][úu]?mero de tarjeta[\s:]*(\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4})'
+                                match = re.search(pattern, ocr_text, re.IGNORECASE)
+                                
+                                if match:
+                                    card_number = match.group(1).replace(" ", "").replace("-", "")
+                                    if len(card_number) == 16:
+                                        extracted_last_four = card_number[-4:]
+                                        self.logger.info(f"Direct OCR extracted card last 4: {extracted_last_four}")
+                                        
+                                        # Update result metadata
+                                        if "metadata" not in result:
+                                            result["metadata"] = {}
+                                        result["metadata"]["card_last_four"] = extracted_last_four
+                                    else:
+                                        self.logger.warning(f"Invalid card number length: {len(card_number)}")
+                                else:
+                                    self.logger.warning("Direct OCR could not find card number pattern")
+                            else:
+                                self.logger.warning("PDF does not have a second page for card extraction")
+                    except Exception as e:
+                        self.logger.warning(f"Direct OCR card extraction failed: {e}")
 
+                # Store any card number we extracted via direct OCR to preserve it
+                extracted_card_last_four = result.get("metadata", {}).get("card_last_four")
+                
                 # If Mexican parsing failed or has low confidence, try enhanced table extraction
                 if not result["success"] or result["confidence"] < 0.5:
                     self.logger.info(
                         "Mexican parsing failed or has low confidence, trying enhanced table extraction"
                     )
                     
-                    # Try direct table extraction
+                    # First try OCR header extraction for card numbers and basic info
+                    try:
+                        self.logger.info("Attempting OCR header extraction for card information")
+                        
+                        # Extract tables from PDF first (specifically for header info)
+                        header_tables_result = table_extractor.extract_tables_from_pdf(pdf_content, 1)  # Page 2 where card info is
+                        
+                        if header_tables_result and header_tables_result.success:
+                            # Parse tables for header info using OCR parser
+                            ocr_result = ocr_table_parser.parse_tables(header_tables_result.tables)
+                            
+                            if ocr_result and hasattr(ocr_result, 'card_last_four') and ocr_result.card_last_four:
+                                self.logger.info(f"OCR extracted card last 4: {ocr_result.card_last_four}")
+                                # Update result metadata with OCR-extracted info
+                                if "metadata" not in result:
+                                    result["metadata"] = {}
+                                result["metadata"]["card_last_four"] = ocr_result.card_last_four
+                                if hasattr(ocr_result, 'customer_name') and ocr_result.customer_name:
+                                    result["metadata"]["customer_name"] = ocr_result.customer_name
+                            else:
+                                self.logger.warning("OCR header extraction did not find card information")
+                        else:
+                            self.logger.warning("Failed to extract tables for OCR header parsing")
+                    except Exception as e:
+                        self.logger.warning(f"OCR header extraction failed: {e}")
+                    
+                    # Try direct table extraction for transactions
                     table_result = self.extract_transaction_tables(pdf_content)
                     
                     if table_result["success"]:
@@ -442,6 +512,15 @@ class PDFProcessor:
                             )
                             enhanced_result["raw_text"] = text
                             enhanced_result["extraction_method"] = "mexican_template"
+                            
+                            # Restore direct OCR extracted card number if it was found and current result doesn't have it
+                            if (extracted_card_last_four and 
+                                (not enhanced_result.get("metadata", {}).get("card_last_four"))):
+                                self.logger.info(f"Restoring direct OCR card last 4: {extracted_card_last_four}")
+                                if "metadata" not in enhanced_result:
+                                    enhanced_result["metadata"] = {}
+                                enhanced_result["metadata"]["card_last_four"] = extracted_card_last_four
+                            
                             return enhanced_result
                         else:
                             # If Mexican parser still fails, try OCR table parser
@@ -450,6 +529,15 @@ class PDFProcessor:
                             if ocr_result["success"]:
                                 ocr_result["raw_text"] = text
                                 ocr_result["extraction_method"] = "mexican_template"
+                                
+                                # Restore direct OCR extracted card number if it was found and current result doesn't have it
+                                if (extracted_card_last_four and 
+                                    (not ocr_result.get("metadata", {}).get("card_last_four"))):
+                                    self.logger.info(f"Restoring direct OCR card last 4: {extracted_card_last_four}")
+                                    if "metadata" not in ocr_result:
+                                        ocr_result["metadata"] = {}
+                                    ocr_result["metadata"]["card_last_four"] = extracted_card_last_four
+                                
                                 return ocr_result
                     
                     # If table extraction also failed, try LLM fallback
