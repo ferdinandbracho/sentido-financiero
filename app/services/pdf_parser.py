@@ -337,9 +337,9 @@ class PDFProcessor:
                         "charge_date": tx.get("charge_date"),
                         "description": tx.get("description", ""),
                         "amount": tx.get("amount"),
-                        "type": "DEBIT"
-                        if tx.get("transaction_type") == "DEBIT"
-                        else "CREDIT",
+                        "type": "CARGO"
+                        if tx.get("transaction_type") in ["DEBIT", "CARGO"]
+                        else "ABONO",
                         "category": tx.get("category", "otros"),
                         "original_category": tx.get("category"),
                         "confidence": parser_result["confidence"],
@@ -435,8 +435,13 @@ class PDFProcessor:
                                     config='--psm 6'
                                 )
                                 
-                                # Extract card number using our proven pattern
+                                # Extract card number using Mexican format pattern
                                 import re
+                                # Pattern explanation:
+                                # [Nn][úu]?mero - "Numero" or "Número" (with optional accent)
+                                # de tarjeta - "de tarjeta" (card)
+                                # [\s:]* - optional spaces or colons
+                                # (\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}) - 16 digits in 4-4-4-4 format with optional spaces/dashes
                                 pattern = r'[Nn][úu]?mero de tarjeta[\s:]*(\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4})'
                                 match = re.search(pattern, ocr_text, re.IGNORECASE)
                                 

@@ -118,7 +118,8 @@ async def root(
     )
 
 
-ALLOWED_EXTENSIONS = {".pdf"}
+# Get allowed extensions from config
+ALLOWED_EXTENSIONS = set(settings.get_allowed_extensions())
 
 
 def validate_upload_file(file: UploadFile) -> None:
@@ -288,7 +289,7 @@ async def upload_statement(
                         amount=tx_data.get("amount"),
                         transaction_type=(
                             TransactionTypeEnum.CARGO
-                            if tx_data.get("type") in ["cargo", "DEBIT"]
+                            if tx_data.get("type") in ["cargo", "CARGO", "DEBIT"]
                             else TransactionTypeEnum.ABONO
                         ),
                         category=tx_data.get(
@@ -436,9 +437,9 @@ async def list_statements(
                         float(tx.amount) if tx.amount is not None else 0.0
                     ),
                     "transaction_type": (
-                        TransactionType.DEBIT
+                        TransactionType.CARGO
                         if tx.transaction_type == TransactionTypeEnum.CARGO
-                        else TransactionType.CREDIT
+                        else TransactionType.ABONO
                     ),
                     "category": tx.category or TransactionCategoryEnum.OTROS,
                     "original_category": tx.original_category,
@@ -559,9 +560,9 @@ async def get_statement_detail(
                 "amount": tx.amount,
                 "category": tx.category,
                 # Map transaction type from database to schema
-                "transaction_type": TransactionType.DEBIT
+                "transaction_type": TransactionType.CARGO
                 if tx.transaction_type == TransactionTypeEnum.CARGO
-                else TransactionType.CREDIT,
+                else TransactionType.ABONO,
             }
             mapped_transactions.append(tx_dict)
 
@@ -851,8 +852,8 @@ async def get_statement_transactions(
                 "description": tx.description,
                 "amount": float(tx.amount) if tx.amount else 0.0,
                 "transaction_type": (
-                    "debit" if tx.transaction_type == TransactionTypeEnum.CARGO
-                    else "credit"
+                    "cargo" if tx.transaction_type == TransactionTypeEnum.CARGO
+                    else "abono"
                 ),
                 "category": tx.category,
                 "original_category": tx.original_category,

@@ -19,8 +19,8 @@ from pydantic import BaseModel, Field
 class TransactionType(str, Enum):
     """Transaction type enumeration."""
 
-    DEBIT = "DEBIT"
-    CREDIT = "CREDIT"
+    CARGO = "cargo"  # Charge/Debit
+    ABONO = "abono"  # Payment/Credit
 
 
 class TransactionCategory(str, Enum):
