@@ -2,7 +2,7 @@
 
 A full-stack application that uses OpenAI's GPT models through LangChain to automatically categorize and analyze Mexican bank statement transactions. Upload PDF statements and get intelligent insights about your spending patterns with full Spanish language support and a complete dark mode experience.
 
-## 📱 Application Screenshots
+## Application Screenshots
 
 
 ### Light Theme
