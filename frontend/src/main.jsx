@@ -25,18 +25,19 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           toastOptions={{
             duration: 4000,
             style: {
-              background: '#363636',
-              color: '#fff',
+              background: 'hsl(var(--card))',
+              color: 'hsl(var(--card-foreground))',
+              border: '1px solid hsl(var(--border))',
             },
             iconTheme: {
-              primary: '#22c55e',
-              secondary: '#fff',
+              primary: 'hsl(var(--success))',
+              secondary: 'hsl(var(--success-foreground))',
             },
             error: {
               duration: 5000,
               iconTheme: {
-                primary: '#ef4444',
-                secondary: '#fff',
+                primary: 'hsl(var(--destructive))',
+                secondary: 'hsl(var(--destructive-foreground))',
               },
             },
           }}

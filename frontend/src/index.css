@@ -4,7 +4,35 @@
 
 @layer base {
   :root {
-    /* Base theme */
+    /* Base colors */
+    --clr-dark-a0: #000000;
+    --clr-light-a0: #ffffff;
+
+    /* Theme primary colors */
+    --clr-primary-a0: #0c30cf;
+    --clr-primary-a10: #4645d5;
+    --clr-primary-a20: #655adb;
+    --clr-primary-a30: #7f70e1;
+    --clr-primary-a40: #9787e7;
+    --clr-primary-a50: #ad9eec;
+
+    /* Theme surface colors */
+    --clr-surface-a0: #121212;
+    --clr-surface-a10: #282828;
+    --clr-surface-a20: #3f3f3f;
+    --clr-surface-a30: #575757;
+    --clr-surface-a40: #717171;
+    --clr-surface-a50: #8b8b8b;
+
+    /* Theme tonal surface colors */
+    --clr-surface-tonal-a0: #1d1933;
+    --clr-surface-tonal-a10: #332e47;
+    --clr-surface-tonal-a20: #49455c;
+    --clr-surface-tonal-a30: #615c71;
+    --clr-surface-tonal-a40: #797587;
+    --clr-surface-tonal-a50: #938f9e;
+
+    /* Light theme semantic colors */
     --background: 0 0% 100%;
     --foreground: 222.2 47.4% 11.2%;
     --card: 0 0% 100%;
@@ -25,11 +53,62 @@
     --input: 214.3 20% 89.8%;
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
+
+    /* Success colors */
+    --success: 142 76% 36%;
+    --success-foreground: 355 100% 100%;
+    
+    /* Warning colors */
+    --warning: 48 96% 53%;
+    --warning-foreground: 20 14.3% 4.1%;
+    
+    /* Error colors */
+    --error: 0 84.2% 60.2%;
+    --error-foreground: 210 40% 98%;
+  }
+
+  .dark {
+    /* Dark theme semantic colors */
+    --background: 0 0% 7.1%;
+    --foreground: 0 0% 95%;
+    --card: 0 0% 10.2%;
+    --card-foreground: 0 0% 95%;
+    --popover: 0 0% 10.2%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 247 64% 69%;
+    --primary-foreground: 220 26% 14%;
+    --secondary: 220 15% 25%;
+    --secondary-foreground: 0 0% 95%;
+    --muted: 220 15% 20%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 220 15% 25%;
+    --accent-foreground: 0 0% 95%;
+    --destructive: 0 75% 65%;
+    --destructive-foreground: 0 0% 95%;
+    --border: 220 15% 20%;
+    --input: 220 15% 20%;
+    --ring: 247 64% 69%;
+
+    /* Success colors dark */
+    --success: 142 70% 45%;
+    --success-foreground: 0 0% 95%;
+    
+    /* Warning colors dark */
+    --warning: 48 96% 60%;
+    --warning-foreground: 220 26% 14%;
+    
+    /* Error colors dark */
+    --error: 0 75% 65%;
+    --error-foreground: 0 0% 95%;
   }
   
-  /* Base transitions */
+  /* Base transitions for smooth theme switching */
   * {
-    @apply transition-colors duration-100;
+    @apply transition-colors duration-200 ease-in-out;
+  }
+  
+  html {
+    @apply transition-colors duration-200 ease-in-out;
   }
 
   * {
@@ -56,19 +135,56 @@
   }
   
   .btn-primary {
-    @apply bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800;
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+  
+  .btn-primary:hover {
+    background-color: hsl(var(--primary) / 0.9);
+  }
+  
+  .btn-primary:active {
+    background-color: hsl(var(--primary) / 0.8);
   }
   
   .btn-secondary {
-    @apply bg-white text-gray-900 border border-gray-300 hover:bg-gray-50 active:bg-gray-100;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    border: 1px solid hsl(var(--border));
+  }
+  
+  .btn-secondary:hover {
+    background-color: hsl(var(--muted));
+  }
+  
+  .btn-secondary:active {
+    background-color: hsl(var(--muted));
   }
   
   .btn-success {
-    @apply bg-success-600 text-white hover:bg-success-700 active:bg-success-800;
+    background-color: hsl(var(--success));
+    color: hsl(var(--success-foreground));
+  }
+  
+  .btn-success:hover {
+    background-color: hsl(var(--success) / 0.9);
+  }
+  
+  .btn-success:active {
+    background-color: hsl(var(--success) / 0.8);
   }
   
   .btn-danger {
-    @apply bg-error-600 text-white hover:bg-error-700 active:bg-error-800;
+    background-color: hsl(var(--destructive));
+    color: hsl(var(--destructive-foreground));
+  }
+  
+  .btn-danger:hover {
+    background-color: hsl(var(--destructive) / 0.9);
+  }
+  
+  .btn-danger:active {
+    background-color: hsl(var(--destructive) / 0.8);
   }
   
   .btn-sm {
@@ -84,15 +200,15 @@
   }
   
   .input {
-    @apply flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50;
+    @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50;
   }
   
   .card {
-    @apply bg-white rounded-lg border border-gray-200 shadow-sm;
+    @apply bg-card rounded-lg border border-border shadow-sm;
   }
   
   .card-header {
-    @apply px-6 py-4 border-b border-gray-200;
+    @apply px-6 py-4 border-b border-border;
   }
   
   .card-content {
@@ -100,7 +216,7 @@
   }
   
   .card-footer {
-    @apply px-6 py-4 border-t border-gray-200;
+    @apply px-6 py-4 border-t border-border;
   }
   
   .badge {
@@ -108,19 +224,19 @@
   }
   
   .badge-success {
-    @apply bg-success-100 text-success-800;
+    @apply bg-success/10 text-success;
   }
   
   .badge-warning {
-    @apply bg-warning-100 text-warning-800;
+    @apply bg-warning/10 text-warning;
   }
   
   .badge-error {
-    @apply bg-error-100 text-error-800;
+    @apply bg-destructive/10 text-destructive;
   }
   
   .badge-info {
-    @apply bg-primary-100 text-primary-800;
+    @apply bg-primary/10 text-primary;
   }
   
   .table {
@@ -128,15 +244,15 @@
   }
   
   .table th {
-    @apply px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200;
+    @apply px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border;
   }
   
   .table td {
-    @apply px-4 py-4 text-sm text-gray-900 border-b border-gray-200;
+    @apply px-4 py-4 text-sm text-foreground border-b border-border;
   }
   
   .table tbody tr:hover {
-    @apply bg-gray-50;
+    @apply bg-muted/50;
   }
 }
 
@@ -166,17 +282,17 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: hsl(var(--muted));
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: hsl(var(--muted-foreground) / 0.3);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: hsl(var(--muted-foreground) / 0.5);
 }
 
 /* Loading animation */
@@ -190,22 +306,29 @@
 }
 
 .loading-shimmer {
-  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background: linear-gradient(90deg, hsl(var(--muted)) 25%, hsl(var(--muted-foreground) / 0.1) 50%, hsl(var(--muted)) 75%);
   background-size: 200px 100%;
   animation: shimmer 1.5s infinite;
 }
 
 /* File upload dropzone */
 .dropzone {
-  @apply border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer transition-colors;
+  border: 2px dashed hsl(var(--border));
+  border-radius: 0.5rem;
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: colors 0.2s ease-in-out;
 }
 
 .dropzone:hover {
-  @apply border-gray-400 bg-gray-50;
+  border-color: hsl(var(--muted-foreground));
+  background-color: hsl(var(--muted) / 0.5);
 }
 
 .dropzone.active {
-  @apply border-primary-400 bg-primary-50;
+  border-color: hsl(var(--primary));
+  background-color: hsl(var(--primary) / 0.1);
 }
 
 /* Chart containers */

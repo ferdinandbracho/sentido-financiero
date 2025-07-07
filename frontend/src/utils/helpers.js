@@ -110,62 +110,62 @@ export const getCategoryInfo = (category) => {
   const categoryMap = {
     alimentacion: {
       name: 'Alimentación',
-      color: 'bg-green-100 text-green-800',
+      color: 'bg-success/10 text-success',
       icon: Utensils
     },
     gasolineras: {
       name: 'Gasolineras',
-      color: 'bg-yellow-100 text-yellow-800',
+      color: 'bg-warning/10 text-warning',
       icon: Fuel
     },
     servicios: {
       name: 'Servicios',
-      color: 'bg-blue-100 text-blue-800',
+      color: 'bg-primary/10 text-primary',
       icon: Wrench
     },
     salud: {
       name: 'Salud',
-      color: 'bg-red-100 text-red-800',
+      color: 'bg-destructive/10 text-destructive',
       icon: HeartPulse
     },
     transporte: {
       name: 'Transporte',
-      color: 'bg-purple-100 text-purple-800',
+      color: 'bg-accent/10 text-accent-foreground',
       icon: Car
     },
     entretenimiento: {
       name: 'Entretenimiento',
-      color: 'bg-pink-100 text-pink-800',
+      color: 'bg-secondary/10 text-secondary-foreground',
       icon: Film
     },
     ropa: {
       name: 'Ropa',
-      color: 'bg-indigo-100 text-indigo-800',
+      color: 'bg-primary/20 text-primary',
       icon: Shirt
     },
     educacion: {
       name: 'Educación',
-      color: 'bg-orange-100 text-orange-800',
+      color: 'bg-warning/20 text-warning',
       icon: GraduationCap
     },
     transferencias: {
       name: 'Transferencias',
-      color: 'bg-gray-100 text-gray-800',
+      color: 'bg-muted text-muted-foreground',
       icon: ArrowLeftRight
     },
     seguros: {
       name: 'Seguros',
-      color: 'bg-teal-100 text-teal-800',
+      color: 'bg-success/20 text-success',
       icon: Shield
     },
     intereses_comisiones: {
       name: 'Intereses/Comisiones',
-      color: 'bg-red-100 text-red-800',
+      color: 'bg-destructive/20 text-destructive',
       icon: BarChart2
     },
     otros: {
       name: 'Otros',
-      color: 'bg-gray-100 text-gray-800',
+      color: 'bg-muted text-muted-foreground',
       icon: FileText
     }
   }
@@ -180,22 +180,22 @@ export const getStatusInfo = (status) => {
   const statusMap = {
     uploaded: {
       name: 'Subido',
-      color: 'bg-blue-100 text-blue-800',
+      color: 'bg-primary/10 text-primary',
       icon: File
     },
     processing: {
       name: 'Procesando',
-      color: 'bg-yellow-100 text-yellow-800',
+      color: 'bg-warning/10 text-warning',
       icon: Clock
     },
     processed: {
       name: 'Procesado',
-      color: 'bg-green-100 text-green-800',
+      color: 'bg-success/10 text-success',
       icon: CheckCircle
     },
     failed: {
       name: 'Error',
-      color: 'bg-red-100 text-red-800',
+      color: 'bg-destructive/10 text-destructive',
       icon: XCircle
     }
   }
@@ -221,8 +221,11 @@ export const debounce = (func, wait) => {
 /**
  * Generate chart colors
  */
-export const generateColors = (count) => {
-  const colors = [
+export const generateColors = (count, isDark = false) => {
+  // Check if we're in dark mode by looking at the root class
+  const isCurrentlyDark = isDark || document.documentElement.classList.contains('dark')
+  
+  const lightColors = [
     '#3b82f6', // blue
     '#10b981', // emerald  
     '#f59e0b', // amber
@@ -234,6 +237,21 @@ export const generateColors = (count) => {
     '#ec4899', // pink
     '#6b7280', // gray
   ]
+  
+  const darkColors = [
+    '#60a5fa', // lighter blue
+    '#34d399', // lighter emerald
+    '#fbbf24', // lighter amber
+    '#f87171', // lighter red
+    '#a78bfa', // lighter violet
+    '#22d3ee', // lighter cyan
+    '#a3e635', // lighter lime
+    '#fb923c', // lighter orange
+    '#f472b6', // lighter pink
+    '#9ca3af', // lighter gray
+  ]
+  
+  const colors = isCurrentlyDark ? darkColors : lightColors
   
   const result = []
   for (let i = 0; i < count; i++) {

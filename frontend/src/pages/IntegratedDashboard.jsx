@@ -197,9 +197,9 @@ export default function IntegratedDashboard() {
   if (error) {
     return (
       <div className="text-center py-12">
-        <AlertCircle className="mx-auto h-12 w-12 text-red-400" />
-        <h3 className="mt-2 text-sm font-medium text-gray-900">Error al cargar datos</h3>
-        <p className="mt-1 text-sm text-gray-500">
+        <AlertCircle className="mx-auto h-12 w-12 text-destructive" />
+        <h3 className="mt-2 text-sm font-medium text-foreground">Error al cargar datos</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
           No se pudieron cargar los estados de cuenta.
         </p>
         <div className="mt-6">
@@ -220,8 +220,8 @@ export default function IntegratedDashboard() {
       {/* Header */}
       <div className="sm:flex sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             Resumen de tus estados de cuenta y análisis financiero
           </p>
         </div>
@@ -256,13 +256,13 @@ export default function IntegratedDashboard() {
       </div>
 
       {/* Filters and Search */}
-      <div className="bg-white shadow rounded-lg">
+      <div className="bg-card shadow rounded-lg border border-border">
         <div className="px-6 py-4">
           <div className="sm:flex sm:items-center sm:justify-between space-y-4 sm:space-y-0">
             {/* Search */}
             <div className="flex-1 max-w-lg">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
                   type="text"
                   placeholder="Buscar por nombre de archivo o banco..."
@@ -297,32 +297,32 @@ export default function IntegratedDashboard() {
       </div>
 
       {/* Statements List */}
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+      <div className="bg-card shadow overflow-hidden sm:rounded-lg border border-border">
         {isLoading ? (
           <div className="px-6 py-4">
             <div className="animate-pulse space-y-4">
               {[...Array(5)].map((_, i) => (
                 <div key={i} className="flex items-center space-x-4">
-                  <div className="rounded-lg bg-gray-200 h-12 w-12"></div>
+                  <div className="rounded-lg bg-muted h-12 w-12"></div>
                   <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    <div className="h-4 bg-muted rounded w-3/4"></div>
+                    <div className="h-3 bg-muted rounded w-1/2"></div>
                   </div>
-                  <div className="h-8 bg-gray-200 rounded w-20"></div>
+                  <div className="h-8 bg-muted rounded w-20"></div>
                 </div>
               ))}
             </div>
           </div>
         ) : filteredStatements.length === 0 ? (
           <div className="px-6 py-12 text-center">
-            <FileText className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">
+            <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
+            <h3 className="mt-2 text-sm font-medium text-foreground">
               {searchTerm 
                 ? 'No se encontraron resultados' 
                 : 'No hay estados de cuenta'
               }
             </h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-muted-foreground">
               {searchTerm
                 ? 'Intenta ajustar los términos de búsqueda'
                 : 'Comienza subiendo tu primer estado de cuenta'
@@ -340,21 +340,21 @@ export default function IntegratedDashboard() {
         ) : (
           <>
             {/* Bulk Operations Toolbar */}
-            <div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
+            <div className="px-6 py-3 bg-muted/50 border-b border-border">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   {/* Select All Checkbox */}
                   <label className="flex items-center">
                     <input
                       type="checkbox"
-                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                      className="h-4 w-4 text-primary focus:ring-primary border-border rounded"
                       checked={allSelected}
                       ref={(el) => {
                         if (el) el.indeterminate = indeterminate
                       }}
                       onChange={() => allSelected ? deselectAllStatements() : selectAllStatements()}
                     />
-                    <span className="ml-2 text-sm text-gray-700">
+                    <span className="ml-2 text-sm text-foreground">
                       {selectedStatements.size > 0 
                         ? `${selectedStatements.size} seleccionados`
                         : 'Seleccionar todo'}
@@ -412,26 +412,26 @@ export default function IntegratedDashboard() {
             </ul>
 
             {/* Summary Footer */}
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-              <h3 className="text-sm font-medium text-gray-900 mb-4">Resumen de la vista actual</h3>
+            <div className="px-6 py-4 bg-muted/50 border-t border-border">
+              <h3 className="text-sm font-medium text-foreground mb-4">Resumen de la vista actual</h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-2xl font-bold text-foreground">
                     {filteredStatements.length}
                   </p>
-                  <p className="text-sm text-gray-500">Estados mostrados</p>
+                  <p className="text-sm text-muted-foreground">Estados mostrados</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-blue-600">
+                  <p className="text-2xl font-bold text-primary">
                     {filteredStatements.reduce((sum, s) => sum + (s.total_transactions || 0), 0)}
                   </p>
-                  <p className="text-sm text-gray-500">Transacciones</p>
+                  <p className="text-sm text-muted-foreground">Transacciones</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-purple-600">
+                  <p className="text-2xl font-bold text-accent-foreground">
                     {formatCurrency(filteredStatements.reduce((sum, s) => sum + (s.total_debits || 0), 0))}
                   </p>
-                  <p className="text-sm text-gray-500">Monto total</p>
+                  <p className="text-sm text-muted-foreground">Monto total</p>
                 </div>
               </div>
             </div>
@@ -484,14 +484,14 @@ function StatementItem({ statement, onDelete, onProcess, isDeleting, isProcessin
   }, [isMenuOpen, onMenuToggle, statement.id]);
 
   return (
-    <li className="px-6 py-4 hover:bg-gray-50">
+    <li className="px-6 py-4 hover:bg-muted/50">
       <div className="flex items-center justify-between">
         <div className="flex items-center min-w-0 flex-1">
           {/* Selection Checkbox - Always visible */}
           <div className="flex-shrink-0 mr-3">
             <input
               type="checkbox"
-              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+              className="h-4 w-4 text-primary focus:ring-primary border-border rounded"
               checked={isSelected}
               onChange={onSelectionToggle}
               onClick={(e) => e.stopPropagation()}
@@ -514,7 +514,7 @@ function StatementItem({ statement, onDelete, onProcess, isDeleting, isProcessin
             <div className="flex items-center space-x-2">
               <Link
                 to={`/statements/${statement.id}`}
-                className="text-sm font-medium text-primary-600 hover:text-primary-500 truncate"
+                className="text-sm font-medium text-primary hover:text-primary/80 truncate"
               >
                 {formatStatementName(statement)}
               </Link>
@@ -523,7 +523,7 @@ function StatementItem({ statement, onDelete, onProcess, isDeleting, isProcessin
               </span>
             </div>
             
-            <div className="mt-1 flex items-center space-x-4 text-sm text-gray-500">
+            <div className="mt-1 flex items-center space-x-4 text-sm text-muted-foreground">
               <span>{statement.bank_name || 'Banco no identificado'}</span>
               <span>•</span>
               <span>Subido {formatDate(statement.upload_date, 'relative')}</span>
@@ -534,10 +534,10 @@ function StatementItem({ statement, onDelete, onProcess, isDeleting, isProcessin
         <div className="flex items-center space-x-4">
           {/* Stats */}
           <div className="hidden sm:block text-right">
-            <p className="text-sm font-medium text-gray-900">
+            <p className="text-sm font-medium text-foreground">
               {statement.total_transactions || 0} transacciones
             </p>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted-foreground">
               {formatCurrency(statement.total_debits || 0)}
             </p>
           </div>
@@ -582,7 +582,7 @@ function StatementItem({ statement, onDelete, onProcess, isDeleting, isProcessin
 
               {isMenuOpen && (
                 <div 
-                  className="fixed right-4 mt-1 w-48 bg-white rounded-md shadow-lg z-[1000] border border-gray-200 overflow-visible"
+                  className="fixed right-4 mt-1 w-48 bg-card rounded-md shadow-lg z-[1000] border border-border overflow-visible"
                   style={{
                     // Position the dropdown relative to the viewport
                     position: 'fixed',
@@ -604,7 +604,7 @@ function StatementItem({ statement, onDelete, onProcess, isDeleting, isProcessin
                         window.open(`/api/v1/statements/${statement.id}/download`, '_blank');
                         onMenuToggle(statement.id, false);
                       }}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 whitespace-nowrap"
+                      className="block w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted whitespace-nowrap"
                     >
                       <Download className="h-4 w-4 mr-2 inline" />
                       Descargar PDF
@@ -616,7 +616,7 @@ function StatementItem({ statement, onDelete, onProcess, isDeleting, isProcessin
                         onMenuToggle(statement.id, false);
                       }}
                       disabled={isDeleting}
-                      className="block w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50 whitespace-nowrap"
+                      className="block w-full text-left px-4 py-2 text-sm text-destructive hover:bg-destructive/10 whitespace-nowrap"
                     >
                       <Trash2 className="h-4 w-4 mr-2 inline" />
                       Eliminar
@@ -635,13 +635,13 @@ function StatementItem({ statement, onDelete, onProcess, isDeleting, isProcessin
 // Stat card component
 function StatCard({ title, value, icon: Icon, color }) {
   const colorClasses = {
-    blue: 'bg-blue-100 text-blue-600',
-    purple: 'bg-purple-100 text-purple-600',
-    orange: 'bg-orange-100 text-orange-600',
+    blue: 'bg-primary/10 text-primary',
+    purple: 'bg-accent/10 text-accent-foreground',
+    orange: 'bg-warning/10 text-warning',
   }
 
   return (
-    <div className="bg-white overflow-hidden shadow rounded-lg">
+    <div className="bg-card overflow-hidden shadow rounded-lg border border-border">
       <div className="p-5">
         <div className="flex items-center">
           <div className="flex-shrink-0">
@@ -651,8 +651,8 @@ function StatCard({ title, value, icon: Icon, color }) {
           </div>
           <div className="ml-5 w-0 flex-1">
             <dl>
-              <dt className="text-sm font-medium text-gray-500 truncate">{title}</dt>
-              <dd className="text-2xl font-semibold text-gray-900">{value}</dd>
+              <dt className="text-sm font-medium text-muted-foreground truncate">{title}</dt>
+              <dd className="text-2xl font-semibold text-card-foreground">{value}</dd>
             </dl>
           </div>
         </div>

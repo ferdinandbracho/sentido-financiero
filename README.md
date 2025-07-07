@@ -1,29 +1,59 @@
 # SentidoFinanciero - AI-Powered Bank Statement Analyzer
 
-A modern, full-stack application that uses OpenAI's GPT models through LangChain to automatically categorize and analyze Mexican bank statement transactions. Upload PDF statements and get intelligent insights about your spending patterns with full Spanish language support.
+A full-stack application that uses OpenAI's GPT models through LangChain to automatically categorize and analyze Mexican bank statement transactions. Upload PDF statements and get intelligent insights about your spending patterns with full Spanish language support and a complete dark mode experience.
 
 ## 📱 Application Screenshots
 
-### Dashboard Overview
+
+### Light Theme
+
+<table>
+<tr>
+<td width="25%">
 
 ![Dashboard](docs/images/Screenshot%202025-07-06%20at%2016.02.01.png)
-*Main dashboard showing statement summary and financial metrics*
 
-### Statement Analysis
+</td>
+<td width="25%">
+
 ![Statement Analysis](docs/images/Screenshot%202025-07-06%20at%2015.58.29.png)
-*Detailed statement view with categorized transactions and spending analysis*
 
-### AI-Powered Categorization
-![Categorization](docs/images/Screenshot%202025-07-06%20at%2015.58.38.png)
-*Smart categorization of transactions with detailed breakdowns*
+</td>
+<td width="25%">
 
-### Transaction Management
 ![Transactions](docs/images/Screenshot%202025-07-06%20at%2015.58.49.png)
-*Complete transaction listing with AI-generated categories*
 
-### File Upload Interface
+</td>
+<td width="25%">
+
 ![Upload](docs/images/Screenshot%202025-07-06%20at%2015.58.58.png)
-*Intuitive drag-and-drop PDF upload system*
+
+</td>
+</tr>
+</table>
+
+### Dark Theme
+
+<table>
+<tr>
+<td width="33%">
+
+![Dashboard Dark](docs/images/Screenshot%202025-07-06%20at%2021.20.32.png)
+
+</td>
+<td width="33%">
+
+![Analysis Dark](docs/images/Screenshot%202025-07-06%20at%2021.20.44.png)
+
+</td>
+<td width="33%">
+
+![Transactions Dark](docs/images/Screenshot%202025-07-06%20at%2021.20.50.png)
+
+</td>
+</tr>
+</table>
+
 
 ## Features in Detail
 
@@ -47,15 +77,6 @@ A modern, full-stack application that uses OpenAI's GPT models through LangChain
 * **Data Minimization**: Only processes necessary transaction data
 * **GDPR Compliant**: Built with privacy in mind
 
-### Modern Interface
-
-* **Bilingual Support**: Full Spanish interface with Mexican financial terminology
-* **Responsive Design**: Works perfectly on desktop, tablet, and mobile
-* **Real-time Updates**: Live processing status and notifications
-* **Drag & Drop Upload**: Intuitive PDF file upload with format validation
-* **Interactive Dashboard**: Clean, modern UI with comprehensive financial metrics
-* **Smart Navigation**: Breadcrumb navigation and intuitive menu structure
-* **Visual Analytics**: Interactive charts and graphs for spending patterns
 
 ## Architecture
 
@@ -232,13 +253,13 @@ OPENAI_MODEL=gpt-3.5-turbo  # For cost efficiency
 
 1. Select a processed statement from the dashboard
 2. Explore two main tabs:
-   - **Análisis**: Interactive charts showing spending distribution by category
-   - **Transacciones**: Complete transaction list with AI-generated categories
+   * **Análisis**: Interactive charts showing spending distribution by category
+   * **Transacciones**: Complete transaction list with AI-generated categories
 3. View detailed breakdowns including:
-   - Balance Neto (Net Balance)
-   - Total Ingresos (Total Income) 
-   - Total Gastos (Total Expenses)
-   - Spending by category with visual charts
+   * Balance Neto (Net Balance)
+   * Total Ingresos (Total Income)
+   * Total Gastos (Total Expenses)
+   * Spending by category with visual charts
 
 ### 4. Manage Categories
 
@@ -246,6 +267,14 @@ OPENAI_MODEL=gpt-3.5-turbo  # For cost efficiency
 2. Categories include: Alimentación, Transporte, Salud, Ropa, etc.
 3. All categorization is automatic using hybrid AI approach
 4. Export functionality available for external analysis
+
+### 5. Theme Customization
+
+1. **Dark Mode Toggle**: Click the sun/moon icon in the navbar for instant theme switching
+2. **System Preference**: Select "System" mode to automatically follow your OS theme setting
+3. **Persistent Settings**: Your theme choice is saved and restored across sessions
+4. **Complete Coverage**: All components, charts, and interactions properly themed
+5. **Professional Design**: High contrast and accessibility-compliant color schemes
 
 ## AI Categorization
 
