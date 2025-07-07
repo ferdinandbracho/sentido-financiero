@@ -14,7 +14,7 @@ export function LoadingSpinner({ size = 'md', className }) {
 
   return (
     <div className={clsx(
-      'animate-spin rounded-full border-2 border-gray-300 border-t-primary-600',
+      'animate-spin rounded-full border-2 border-muted border-t-primary',
       sizeClasses[size],
       className
     )} />
@@ -28,7 +28,7 @@ export function LoadingSkeleton({ className, ...props }) {
   return (
     <div
       className={clsx(
-        'animate-pulse bg-gray-200 rounded',
+        'animate-pulse bg-muted rounded',
         className
       )}
       {...props}
@@ -49,13 +49,13 @@ export function EmptyState({
   return (
     <div className={clsx('text-center py-12', className)}>
       {Icon && (
-        <Icon className="mx-auto h-12 w-12 text-gray-400" />
+        <Icon className="mx-auto h-12 w-12 text-muted-foreground" />
       )}
-      <h3 className="mt-2 text-sm font-medium text-gray-900">
+      <h3 className="mt-2 text-sm font-medium text-foreground">
         {title}
       </h3>
       {description && (
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-muted-foreground">
           {description}
         </p>
       )}
@@ -79,10 +79,10 @@ export function Alert({
   className 
 }) {
   const typeClasses = {
-    info: 'bg-blue-50 border-blue-200 text-blue-800',
-    success: 'bg-green-50 border-green-200 text-green-800',
-    warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
-    error: 'bg-red-50 border-red-200 text-red-800'
+    info: 'bg-primary/10 border-primary/20 text-primary',
+    success: 'bg-success/10 border-success/20 text-success',
+    warning: 'bg-warning/10 border-warning/20 text-warning',
+    error: 'bg-destructive/10 border-destructive/20 text-destructive'
   }
 
   const iconClasses = {
@@ -153,25 +153,25 @@ export function Modal({
       <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
         {/* Backdrop */}
         <div 
-          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity"
           onClick={onClose}
         />
 
         {/* Modal */}
         <div className={clsx(
-          'inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle w-full',
+          'inline-block align-bottom bg-card rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle w-full',
           sizeClasses[size]
         )}>
           {title && (
-            <div className="px-6 py-4 border-b border-gray-200">
+            <div className="px-6 py-4 border-b border-border">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium text-gray-900">
+                <h3 className="text-lg font-medium text-card-foreground">
                   {title}
                 </h3>
                 {showCloseButton && (
                   <button
                     onClick={onClose}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-muted-foreground hover:text-foreground"
                   >
                     ×
                   </button>
@@ -210,7 +210,7 @@ export function Tooltip({ children, content, position = 'top' }) {
       {children}
       {isVisible && (
         <div className={clsx(
-          'absolute z-10 px-2 py-1 text-xs text-white bg-gray-900 rounded whitespace-nowrap',
+          'absolute z-10 px-2 py-1 text-xs text-primary-foreground bg-primary rounded whitespace-nowrap',
           positionClasses[position]
         )}>
           {content}
@@ -225,11 +225,11 @@ export function Tooltip({ children, content, position = 'top' }) {
  */
 export function Badge({ children, variant = 'default', size = 'md' }) {
   const variantClasses = {
-    default: 'bg-gray-100 text-gray-800',
-    primary: 'bg-primary-100 text-primary-800',
-    success: 'bg-green-100 text-green-800',
-    warning: 'bg-yellow-100 text-yellow-800',
-    error: 'bg-red-100 text-red-800'
+    default: 'bg-muted text-muted-foreground',
+    primary: 'bg-primary/10 text-primary',
+    success: 'bg-success/10 text-success',
+    warning: 'bg-warning/10 text-warning',
+    error: 'bg-destructive/10 text-destructive'
   }
 
   const sizeClasses = {

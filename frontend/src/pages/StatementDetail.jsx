@@ -99,8 +99,8 @@ export function StatementDetail() {
     return (
       <div className="text-center py-12">
         <AlertCircle className="mx-auto h-12 w-12 text-red-400" />
-        <h3 className="mt-2 text-sm font-medium text-gray-900">Error al cargar el estado de cuenta</h3>
-        <p className="mt-1 text-sm text-gray-500">
+        <h3 className="mt-2 text-sm font-medium text-foreground">Error al cargar el estado de cuenta</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
           No se pudo encontrar el estado de cuenta solicitado.
         </p>
         <div className="mt-6">
@@ -117,14 +117,14 @@ export function StatementDetail() {
     return (
       <div className="space-y-6">
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-          <div className="mt-2 h-4 bg-gray-200 rounded w-1/2"></div>
+          <div className="h-8 bg-muted rounded w-1/3"></div>
+          <div className="mt-2 h-4 bg-muted rounded w-1/2"></div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-white p-6 rounded-lg shadow animate-pulse">
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              <div className="mt-2 h-8 bg-gray-200 rounded w-1/2"></div>
+            <div key={i} className="bg-card p-6 rounded-lg shadow animate-pulse">
+              <div className="h-4 bg-muted rounded w-3/4"></div>
+              <div className="mt-2 h-8 bg-muted rounded w-1/2"></div>
             </div>
           ))}
         </div>
@@ -153,7 +153,7 @@ export function StatementDetail() {
           <li className="inline-flex items-center">
             <Link 
               to="/" 
-              className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-primary-600"
+              className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary"
             >
               <svg className="w-3 h-3 me-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
                 <path d="m19.707 9.293-2-2-7-7a1 1 0 0 0-1.414 0l-7 7-2 2a1 1 0 0 0 1.414 1.414L4 11.414V18a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-6.586l.293.293a1 1 0 0 0 1.414-1.414Z"/>
@@ -163,10 +163,10 @@ export function StatementDetail() {
           </li>
           <li aria-current="page">
             <div className="flex items-center">
-              <svg className="rtl:rotate-180 w-3 h-3 text-gray-400 mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
+              <svg className="rtl:rotate-180 w-3 h-3 text-muted-foreground mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
                 <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 9 4-4-4-4"/>
               </svg>
-              <span className="ms-1 text-sm font-medium text-gray-500 md:ms-2">
+              <span className="ms-1 text-sm font-medium text-muted-foreground md:ms-2">
                 {formatStatementName(statement)}
               </span>
             </div>
@@ -178,14 +178,14 @@ export function StatementDetail() {
       <div className="sm:flex sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center space-x-2">
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-foreground">
               {formatStatementName(statement)}
             </h1>
             <span className={`badge ${statusInfo.color}`}>
               {statusInfo.name}
             </span>
           </div>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-muted-foreground">
             {statement?.bank_name || 'Banco no identificado'} • {' '}
             Subido {formatDate(statement?.upload_date, 'relative')}
           </p>
@@ -266,7 +266,7 @@ export function StatementDetail() {
           'rounded-lg border p-4',
           statement?.processing_status === 'processing' && 'bg-yellow-50 border-yellow-200',
           statement?.processing_status === 'failed' && 'bg-red-50 border-red-200',
-          statement?.processing_status === 'uploaded' && 'bg-blue-50 border-blue-200'
+          statement?.processing_status === 'uploaded' && 'bg-primary/10 border-primary/20'
         )}>
           <div className="flex items-center">
             {statement?.processing_status === 'processing' && (
@@ -287,15 +287,15 @@ export function StatementDetail() {
             )}
             {statement?.processing_status === 'uploaded' && (
               <>
-                <FileText className="h-5 w-5 text-blue-500 mr-2" />
-                <h3 className="text-sm font-medium text-blue-800">
+                <FileText className="h-5 w-5 text-primary mr-2" />
+                <h3 className="text-sm font-medium text-primary">
                   Estado de cuenta listo para procesar
                 </h3>
               </>
             )}
           </div>
           {statement?.processing_notes && (
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-2 text-sm text-muted-foreground">
               {statement.processing_notes}
             </p>
           )}
@@ -304,8 +304,8 @@ export function StatementDetail() {
 
       {/* Tabs */}
       {(statement && (statement.processing_status === 'processed' || statement.processing_status === 'COMPLETED' || statement.total_transactions > 0 || transactions.length > 0)) && (
-        <div className="bg-white shadow rounded-lg">
-          <div className="border-b border-gray-200">
+        <div className="bg-card shadow rounded-lg border border-border">
+          <div className="border-b border-border">
             <nav className="flex space-x-8 px-6">
               {[
                 { id: 'dashboard', label: 'Análisis', icon: BarChart2 },
@@ -320,7 +320,7 @@ export function StatementDetail() {
                       'py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2',
                       activeTab === tab.id
                         ? 'border-primary-500 text-primary-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                        : 'border-transparent text-muted-foreground hover:text-foreground'
                     )}
                   >
                     <Icon className="w-4 h-4" />
@@ -355,25 +355,25 @@ export function StatementDetail() {
 
 function StatCard({ title, value, icon: Icon, color }) {
   const colorClasses = {
-    blue: 'text-blue-600',
+    blue: 'text-primary',
     green: 'text-green-600',
     red: 'text-red-600',
     purple: 'text-purple-600',
   }
 
   return (
-    <div className="bg-white overflow-hidden shadow rounded-lg">
+    <div className="bg-card overflow-hidden shadow rounded-lg border border-border">
       <div className="p-5">
         <div className="flex items-center">
           <div className="flex-shrink-0">
-            <Icon className={clsx('h-6 w-6', colorClasses[color] || 'text-gray-400')} />
+            <Icon className={clsx('h-6 w-6', colorClasses[color] || 'text-muted-foreground')} />
           </div>
           <div className="ml-5 w-0 flex-1">
             <dl>
-              <dt className="text-sm font-medium text-gray-500 truncate">
+              <dt className="text-sm font-medium text-muted-foreground truncate">
                 {title}
               </dt>
-              <dd className="text-lg font-medium text-gray-900">
+              <dd className="text-lg font-medium text-card-foreground">
                 {value}
               </dd>
             </dl>
@@ -386,13 +386,13 @@ function StatCard({ title, value, icon: Icon, color }) {
 
 function TransactionItem({ transaction }) {
   return (
-    <div className="flex justify-between py-2 px-3 bg-gray-50 rounded mt-2 text-sm">
+    <div className="flex justify-between py-2 px-3 bg-muted/50 rounded mt-2 text-sm">
       <div>
         <p className="font-medium">{transaction.description}</p>
-        <p className="text-gray-500 text-xs">{formatDate(transaction.date, 'short')}</p>
+        <p className="text-muted-foreground text-xs">{formatDate(transaction.date, 'short')}</p>
       </div>
       <div className="text-right">
-        <p className={transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}>
+        <p className={transaction.amount >= 0 ? 'text-success' : 'text-destructive'}>
           {formatCurrency(transaction.amount)}
         </p>
       </div>
@@ -428,7 +428,7 @@ function DashboardTab({ analysis, isLoading }) {
       <div className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {[...Array(2)].map((_, i) => (
-            <div key={i} className="h-64 bg-gray-200 animate-pulse rounded-lg"></div>
+            <div key={i} className="h-64 bg-muted animate-pulse rounded-lg"></div>
           ))}
         </div>
       </div>
@@ -438,22 +438,25 @@ function DashboardTab({ analysis, isLoading }) {
   if (!analysis) {
     return (
       <div className="text-center py-8">
-        <AlertCircle className="mx-auto h-8 w-8 text-gray-400" />
-        <p className="mt-2 text-sm text-gray-500">
+        <AlertCircle className="mx-auto h-8 w-8 text-muted-foreground" />
+        <p className="mt-2 text-sm text-muted-foreground">
           No hay análisis disponible para este estado de cuenta
         </p>
       </div>
     )
   }
 
+  // Check if we're in dark mode
+  const isDark = document.documentElement.classList.contains('dark')
+  
   // Prepare chart data
   const categoryData = {
     labels: analysis.categories?.map(cat => getCategoryInfo(cat.category).name) || [],
     datasets: [{
       data: analysis.categories?.map(cat => cat.total_amount) || [],
-      backgroundColor: generateColors(analysis.categories?.length || 0),
+      backgroundColor: generateColors(analysis.categories?.length || 0, isDark),
       borderWidth: 2,
-      borderColor: '#fff'
+      borderColor: isDark ? '#1f2937' : '#ffffff'
     }]
   }
 
@@ -462,8 +465,8 @@ function DashboardTab({ analysis, isLoading }) {
     datasets: [{
       label: 'Número de Transacciones',
       data: analysis.categories?.map(cat => cat.transaction_count) || [],
-      backgroundColor: 'rgba(59, 130, 246, 0.6)',
-      borderColor: 'rgb(59, 130, 246)',
+      backgroundColor: isDark ? 'rgba(96, 165, 250, 0.6)' : 'rgba(59, 130, 246, 0.6)',
+      borderColor: isDark ? 'rgb(96, 165, 250)' : 'rgb(59, 130, 246)',
       borderWidth: 1
     }]
   }
@@ -472,21 +475,21 @@ function DashboardTab({ analysis, isLoading }) {
     <div className="space-y-8">
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-blue-50 p-4 rounded-lg">
-          <h4 className="font-medium text-blue-900">Balance Neto</h4>
-          <p className="text-2xl font-bold text-blue-600">
+        <div className="bg-primary/10 p-4 rounded-lg">
+          <h4 className="font-medium text-primary">Balance Neto</h4>
+          <p className="text-2xl font-bold text-primary">
             {formatCurrency(analysis.net_amount || 0)}
           </p>
         </div>
-        <div className="bg-green-50 p-4 rounded-lg">
-          <h4 className="font-medium text-green-900">Total Ingresos</h4>
-          <p className="text-2xl font-bold text-green-600">
+        <div className="bg-success/10 p-4 rounded-lg">
+          <h4 className="font-medium text-success">Total Ingresos</h4>
+          <p className="text-2xl font-bold text-success">
             {formatCurrency(analysis.total_credits || 0)}
           </p>
         </div>
-        <div className="bg-red-50 p-4 rounded-lg">
-          <h4 className="font-medium text-red-900">Total Gastos</h4>
-          <p className="text-2xl font-bold text-red-600">
+        <div className="bg-destructive/10 p-4 rounded-lg">
+          <h4 className="font-medium text-destructive">Total Gastos</h4>
+          <p className="text-2xl font-bold text-destructive">
             {formatCurrency(analysis.total_debits || 0)}
           </p>
         </div>
@@ -503,7 +506,10 @@ function DashboardTab({ analysis, isLoading }) {
                 maintainAspectRatio: false,
                 plugins: {
                   legend: {
-                    position: 'bottom'
+                    position: 'bottom',
+                    labels: {
+                      color: isDark ? '#e5e7eb' : '#374151'
+                    }
                   }
                 }
               }} 
@@ -525,8 +531,22 @@ function DashboardTab({ analysis, isLoading }) {
                   }
                 },
                 scales: {
+                  x: {
+                    ticks: {
+                      color: isDark ? '#e5e7eb' : '#374151'
+                    },
+                    grid: {
+                      color: isDark ? '#374151' : '#e5e7eb'
+                    }
+                  },
                   y: {
-                    beginAtZero: true
+                    beginAtZero: true,
+                    ticks: {
+                      color: isDark ? '#e5e7eb' : '#374151'
+                    },
+                    grid: {
+                      color: isDark ? '#374151' : '#e5e7eb'
+                    }
                   }
                 }
               }} 
@@ -545,9 +565,9 @@ function DashboardTab({ analysis, isLoading }) {
             const categoryTransactions = transactions[category.category] || []
             
             return (
-              <div key={category.category} className="border border-gray-200 rounded-lg overflow-hidden">
+              <div key={category.category} className="border border-border rounded-lg overflow-hidden">
                 <div 
-                  className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                  className="p-4 cursor-pointer hover:bg-muted/50 transition-colors"
                   onClick={() => toggleCategory(category.category)}
                 >
                   <div className="flex items-center justify-between">
@@ -555,14 +575,14 @@ function DashboardTab({ analysis, isLoading }) {
                       <span className="text-xl mr-3">
                         {React.createElement(categoryInfo.icon, { className: 'w-5 h-5' })}
                       </span>
-                      <h4 className="font-medium text-gray-900">{categoryInfo.name}</h4>
+                      <h4 className="font-medium text-foreground">{categoryInfo.name}</h4>
                     </div>
                     <div className="flex items-center">
-                      <span className="text-lg font-bold text-gray-900 mr-4">
+                      <span className="text-lg font-bold text-foreground mr-4">
                         {formatCurrency(category.total_amount)}
                       </span>
                       <svg 
-                        className={`w-5 h-5 text-gray-400 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+                        className={`w-5 h-5 text-muted-foreground transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
                         fill="none" 
                         viewBox="0 0 24 24" 
                         stroke="currentColor"
@@ -574,19 +594,19 @@ function DashboardTab({ analysis, isLoading }) {
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mt-2">
                     <div>
-                      <span className="text-gray-500">Transacciones:</span>
+                      <span className="text-muted-foreground">Transacciones:</span>
                       <p className="font-medium">{category.transaction_count}</p>
                     </div>
                     <div>
-                      <span className="text-gray-500">Promedio:</span>
+                      <span className="text-muted-foreground">Promedio:</span>
                       <p className="font-medium">{formatCurrency(category.average_amount)}</p>
                     </div>
                     <div>
-                      <span className="text-gray-500">% del total:</span>
+                      <span className="text-muted-foreground">% del total:</span>
                       <p className="font-medium">{category.percentage_of_total?.toFixed(1)}%</p>
                     </div>
                     <div>
-                      <span className="text-gray-500">Frecuencia:</span>
+                      <span className="text-muted-foreground">Frecuencia:</span>
                       <p className="font-medium">
                         {(category.transaction_count / (analysis.total_transactions || 1) * 100).toFixed(1)}%
                       </p>
@@ -595,8 +615,8 @@ function DashboardTab({ analysis, isLoading }) {
                 </div>
                 
                 {isExpanded && categoryTransactions.length > 0 && (
-                  <div className="border-t border-gray-100 p-4 bg-gray-50">
-                    <h5 className="font-medium text-sm text-gray-700 mb-2">Transacciones:</h5>
+                  <div className="border-t border-border p-4 bg-muted/50">
+                    <h5 className="font-medium text-sm text-foreground mb-2">Transacciones:</h5>
                     <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
                       {categoryTransactions.map((tx) => (
                         <TransactionItem key={tx.id} transaction={tx} />
@@ -627,7 +647,7 @@ function TransactionsTab({
       <div className="space-y-4">
         {[...Array(5)].map((_, i) => (
           <div key={i} className="animate-pulse">
-            <div className="h-16 bg-gray-200 rounded"></div>
+            <div className="h-16 bg-muted rounded"></div>
           </div>
         ))}
       </div>
@@ -640,7 +660,7 @@ function TransactionsTab({
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
               placeholder="Buscar transacciones..."
@@ -703,14 +723,14 @@ function TransactionsTab({
                   <td className="whitespace-nowrap">
                     <span className={clsx(
                       'font-medium',
-                      transaction.transaction_type === 'credit' ? 'text-green-600' : 'text-gray-900'
+                      transaction.transaction_type === 'credit' ? 'text-success' : 'text-foreground'
                     )}>
                       {transaction.transaction_type === 'credit' ? '+' : ''}
                       {formatCurrency(transaction.amount)}
                     </span>
                   </td>
                   <td className="whitespace-nowrap">
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-muted-foreground">
                       {capitalize(transaction.categorization_method || 'manual')}
                     </span>
                   </td>
@@ -723,7 +743,7 @@ function TransactionsTab({
 
       {transactions.length === 0 && (
         <div className="text-center py-8">
-          <p className="text-gray-500">No se encontraron transacciones</p>
+          <p className="text-muted-foreground">No se encontraron transacciones</p>
         </div>
       )}
     </div>

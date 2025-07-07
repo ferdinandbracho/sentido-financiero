@@ -146,8 +146,8 @@ export function Statements() {
     return (
       <div className="text-center py-12">
         <AlertCircle className="mx-auto h-12 w-12 text-red-400" />
-        <h3 className="mt-2 text-sm font-medium text-gray-900">Error al cargar datos</h3>
-        <p className="mt-1 text-sm text-gray-500">
+        <h3 className="mt-2 text-sm font-medium text-foreground">Error al cargar datos</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
           No se pudieron cargar los estados de cuenta.
         </p>
         <div className="mt-6">
@@ -168,8 +168,8 @@ export function Statements() {
       {/* Header */}
       <div className="sm:flex sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Estados de Cuenta</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-foreground">Estados de Cuenta</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             Gestiona y analiza tus estados de cuenta subidos
             {selectedStatements.size > 0 && (
               <span className="ml-2 text-primary-600 font-medium">
@@ -213,7 +213,7 @@ export function Statements() {
       </div>
 
       {/* Filters and Search */}
-      <div className="bg-white shadow rounded-lg">
+      <div className="bg-card shadow rounded-lg border border-border">
         <div className="px-6 py-4">
           <div className="sm:flex sm:items-center sm:justify-between space-y-4 sm:space-y-0">
             {/* Select All + Search */}
@@ -236,13 +236,13 @@ export function Statements() {
                       : 'border-gray-300 hover:border-gray-400'
                   )}>
                     {filteredStatements.length > 0 && selectedStatements.size === filteredStatements.length ? (
-                      <Check className="w-3 h-3 text-white" />
+                      <Check className="w-3 h-3 text-primary-foreground" />
                     ) : selectedStatements.size > 0 ? (
                       <Minus className="w-3 h-3 text-primary-600" />
                     ) : null}
                   </div>
                 </label>
-                <span className="ml-2 text-sm text-gray-600">
+                <span className="ml-2 text-sm text-foreground">
                   Seleccionar todos
                 </span>
               </div>
@@ -250,7 +250,7 @@ export function Statements() {
               {/* Search */}
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <input
                     type="text"
                     placeholder="Buscar por nombre de archivo o banco..."
@@ -286,13 +286,13 @@ export function Statements() {
       </div>
 
       {/* Statements List */}
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+      <div className="bg-card shadow overflow-hidden sm:rounded-lg border border-border">
         {isLoading ? (
           <div className="px-6 py-4">
             <div className="animate-pulse space-y-4">
               {[...Array(5)].map((_, i) => (
                 <div key={i} className="flex items-center space-x-4">
-                  <div className="rounded-lg bg-gray-200 h-12 w-12"></div>
+                  <div className="rounded-lg bg-muted h-12 w-12"></div>
                   <div className="flex-1 space-y-2">
                     <div className="h-4 bg-gray-200 rounded w-3/4"></div>
                     <div className="h-3 bg-gray-200 rounded w-1/2"></div>

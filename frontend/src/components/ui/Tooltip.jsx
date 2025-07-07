@@ -86,7 +86,7 @@ export function Tooltip({ children, content, position = 'top', className = '' })
       {isVisible && createPortal(
         <div
           ref={tooltipRef}
-          className={`fixed z-50 px-3 py-1.5 text-xs font-medium rounded-md shadow-lg bg-gray-900 text-white dark:bg-nord-3 dark:text-nord-6 transition-opacity duration-200 ${className}`}
+          className={`fixed z-50 px-3 py-1.5 text-xs font-medium rounded-md shadow-lg bg-primary text-primary-foreground transition-opacity duration-200 ${className}`}
           style={{
             top: `${coords.top}px`,
             left: `${coords.left}px`,
@@ -94,7 +94,7 @@ export function Tooltip({ children, content, position = 'top', className = '' })
         >
           {content}
           <div 
-            className={`absolute w-2 h-2 bg-gray-900 dark:bg-nord-3 transform rotate-45 -z-10`}
+            className={`absolute w-2 h-2 bg-primary transform rotate-45 -z-10`}
             style={{
               ...(position === 'top' && { 
                 bottom: '-4px',
